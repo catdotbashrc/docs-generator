@@ -1,0 +1,239 @@
+[project]
+name = "infrastructure-docs-template"
+version = "0.1.0"
+description = "Automated infrastructure documentation system using Sphinx for Azure, SQL, and Java API documentation"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Infrastructure Team", email = "infra@company.com"}
+]
+maintainers = [
+    {name = "Infrastructure Team", email = "infra@company.com"}
+]
+requires-python = ">=3.11"
+keywords = ["documentation", "sphinx", "infrastructure", "automation", "azure", "sql", "java"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: System Administrators",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    # Documentation generation
+    "sphinx>=7.2.0,<8.0.0",
+    "furo>=2024.1.29",
+    "sphinx-tabs>=3.4.5",
+    "jinja2>=3.1.3",
+    
+    # Data sources and parsing
+    "javalang>=0.13.0",
+    "pyodbc>=5.1.0",
+    "pyyaml>=6.0.1",
+    
+    # Azure integration
+    "azure-cli-core>=2.50.0,<3.0.0",
+    "azure-identity>=1.15.0,<2.0.0",
+    
+    # HTTP client
+    "requests>=2.31.0,<3.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/your-org/infrastructure-docs-template"
+"Bug Tracker" = "https://github.com/your-org/infrastructure-docs-template/issues"
+"Documentation" = "https://infrastructure-docs-template.readthedocs.io"
+"Source Code" = "https://github.com/your-org/infrastructure-docs-template"
+
+[project.scripts]
+# Documentation operations
+docs-build = "automation.build:main"
+docs-serve = "automation.serve:main"
+docs-clean = "automation.clean:main"
+docs-setup = "automation.setup:main"
+
+# Automation commands
+azure-docs = "automation.azure:generate_docs"
+sql-docs = "automation.sql:generate_schemas"
+java-docs = "automation.java_parser:generate_java_api_docs"
+
+# Deployment
+deploy-itglue = "automation.deploy:upload_to_itglue"
+
+# Modern dependency groups (PEP 735)
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "sphinx-autobuild>=2024.2.4",
+    "mypy>=1.8.0",
+    "ruff>=0.3.0",
+]
+
+format = [
+    "black>=24.2.0",
+    "isort>=5.13.2",
+]
+
+test = [
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
+
+docs = [
+    "sphinx-autobuild>=2024.2.4",
+    "myst-parser>=2.0.0",
+    "sphinx-copybutton>=0.5.2",
+    "sphinx-autoapi>=3.0.0",
+]
+
+[build-system]
+# Using hatchling for flexibility with tool projects
+requires = ["hatchling>=1.21.0"]
+build-backend = "hatchling.build"
+
+# Hatch configuration
+[tool.hatch.build.targets.wheel]
+packages = ["automation"]
+
+# UV-specific configuration
+[tool.uv]
+# Package should be built and installed (not virtual)
+package = true
+
+# Constraint dependencies for reproducible builds
+constraint-dependencies = [
+    # Ensure stable sphinx ecosystem
+    "docutils<0.21",
+    # Pin critical Azure dependencies
+    "azure-core<2.0.0",
+]
+
+# Cache configuration for faster rebuilds
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "automation/**/*.py" },
+    { git = { commit = true } },
+]
+
+# Index configuration (optional custom indexes)
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+# Development tools configuration
+[tool.black]
+line-length = 88
+target-version = ["py311", "py312"]
+exclude = '''
+/(
+    \.git
+  | \.uv
+  | \.venv
+  | _build
+  | build
+  | dist
+  | docs/build
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["automation"]
+skip_glob = ["*/migrations/*", "*/fixtures/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "ARG",  # flake8-unused-arguments
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # function calls in argument defaults
+    "B024",  # abstract base class without abstract methods
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs/source/conf.py",
+    "old",
+    "build",
+    "dist",
+    ".uv",
+    ".venv",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+check_untyped_defs = true
+no_implicit_reexport = true
+strict_equality = true
+exclude = [
+    "docs/",
+    "tests/",
+    "build/",
+    "dist/",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = [".", "automation"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--cov=automation",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-branch",
+    "--cov-fail-under=80",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
