@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import javalang
 from javalang.tree import *
+from javalang.tree import ReturnStatement
 
 from automation.filesystem.abstract import FileSystem, FileSystemError
 
@@ -828,24 +829,99 @@ class JavaASTExtractor:
         
         for statement in statements:
             if isinstance(statement, IfStatement):
-                condition_str = self._expression_to_string(statement.condition)
-                
-                # Look for numeric comparisons (tax brackets, etc.)
-                threshold = self._extract_numeric_threshold(condition_str)
-                if threshold is not None:
-                    rate = self._extract_rate_from_statement(statement.then_statement)
-                    if rate is not None:
-                        bracket = {
-                            'threshold': threshold,
-                            'rate': rate
-                        }
-                        brackets.append(bracket)
-            
+                # Handle both if and else-if chains for tax bracket style calculations
+                bracket_info = self._extract_bracket_from_if(statement)
+                if bracket_info:
+                    brackets.extend(bracket_info)
             elif isinstance(statement, BlockStatement):
                 if statement.statements:
                     brackets.extend(self._extract_calculation_brackets(statement.statements))
         
         return brackets
+    
+    def _extract_bracket_from_if(self, if_statement) -> List[Dict[str, Any]]:
+        """Extract bracket information from an if statement and its else-if chain."""
+        brackets = []
+        
+        # Extract condition and look for threshold
+        condition_str = self._expression_to_string(if_statement.condition)
+        threshold = self._extract_numeric_threshold(condition_str)
+        
+        # Extract rate from the then branch
+        rate = self._extract_rate_from_branch(if_statement.then_statement)
+        
+        if threshold is not None and rate is not None:
+            brackets.append({
+                'threshold': threshold,
+                'rate': rate
+            })
+        
+        # Check else-if chains
+        if if_statement.else_statement:
+            if isinstance(if_statement.else_statement, IfStatement):
+                # Recursive call for else-if
+                brackets.extend(self._extract_bracket_from_if(if_statement.else_statement))
+            else:
+                # Final else branch - check for rate
+                rate = self._extract_rate_from_branch(if_statement.else_statement)
+                if rate is not None:
+                    # For final else, use a high threshold value
+                    brackets.append({
+                        'threshold': float('inf'),
+                        'rate': rate
+                    })
+        
+        return brackets
+    
+    def _extract_rate_from_branch(self, statement) -> Optional[float]:
+        """Extract rate from any statement in a branch."""
+        if statement is None:
+            return None
+            
+        if isinstance(statement, BlockStatement):
+            # Look through all statements in the block
+            for stmt in statement.statements or []:
+                rate = self._extract_rate_from_branch(stmt)
+                if rate is not None:
+                    return rate
+        elif isinstance(statement, StatementExpression):
+            # Check for assignment expressions like: tax = income * 0.1
+            expr_str = self._expression_to_string(statement.expression)
+            rate = self._extract_rate_from_expression_string(expr_str)
+            if rate is not None:
+                return rate
+        elif isinstance(statement, LocalVariableDeclaration):
+            # Handle local variable declarations
+            for declarator in statement.declarators or []:
+                if declarator.initializer:
+                    init_str = self._expression_to_string(declarator.initializer)
+                    rate = self._extract_rate_from_expression_string(init_str)
+                    if rate is not None:
+                        return rate
+        elif isinstance(statement, ReturnStatement):
+            # Check return statements
+            if statement.expression:
+                expr_str = self._expression_to_string(statement.expression)
+                rate = self._extract_rate_from_expression_string(expr_str)
+                if rate is not None:
+                    return rate
+        
+        return None
+    
+    def _extract_rate_from_expression_string(self, expr_str: str) -> Optional[float]:
+        """Extract rate from an expression string."""
+        import re
+        
+        # Look for multiplication by decimal (e.g., * 0.1, * 0.25)
+        pattern = r'\*\s*(0\.\d+)'
+        match = re.search(pattern, expr_str)
+        if match:
+            try:
+                return float(match.group(1))
+            except:
+                pass
+        
+        return None
     
     def _extract_patterns(self, tree: CompilationUnit) -> List[Dict[str, Any]]:
         """
@@ -1052,41 +1128,7 @@ class JavaASTExtractor:
         
         return None
     
-    def _extract_rate_from_statement(self, statement) -> Optional[float]:
-        """Extract rate/percentage from a statement."""
-        if isinstance(statement, BlockStatement):
-            for stmt in statement.statements or []:
-                rate = self._extract_rate_from_statement(stmt)
-                if rate is not None:
-                    return rate
-        
-        elif isinstance(statement, StatementExpression):
-            # Look for multiplication by decimal (e.g., income * 0.1)
-            expr_str = self._expression_to_string(statement.expression)
-            import re
-            pattern = r'\*\s*(0\.\d+)'
-            match = re.search(pattern, expr_str)
-            if match:
-                try:
-                    return float(match.group(1))
-                except:
-                    pass
-        
-        elif isinstance(statement, LocalVariableDeclaration):
-            # Handle local variable assignments like: tax = income * 0.1
-            for declarator in statement.declarators or []:
-                if declarator.initializer:
-                    init_str = self._expression_to_string(declarator.initializer)
-                    import re
-                    pattern = r'\*\s*(0\.\d+)'
-                    match = re.search(pattern, init_str)
-                    if match:
-                        try:
-                            return float(match.group(1))
-                        except:
-                            pass
-        
-        return None
+
     
     def _is_retry_loop(self, statement) -> bool:
         """Check if a loop statement represents retry logic."""
