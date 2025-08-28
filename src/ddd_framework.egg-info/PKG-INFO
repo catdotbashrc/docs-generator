@@ -1,3 +1,20 @@
+Metadata-Version: 2.4
+Name: ddd-framework
+Version: 0.1.0
+Summary: Documentation Driven Development - TDD for documentation coverage
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: click>=8.0
+Requires-Dist: rich>=13.0
+Requires-Dist: jinja2>=3.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Dynamic: requires-python
+
 # Documentation Driven Development (DDD) Framework
 
 A framework for measuring and ensuring documentation completeness using TDD-like principles.
