@@ -5,9 +5,9 @@ TDD for documentation coverage
 
 __version__ = "0.1.0"
 
-from .coverage import DocumentationCoverage, CoverageResult
-from .specs import DAYLIGHTSpec, DimensionSpec
+from .coverage import CoverageResult, DocumentationCoverage
 from .extractors import DependencyExtractor
+from .specs import DAYLIGHTSpec, DimensionSpec
 
 __all__ = [
     "DocumentationCoverage",

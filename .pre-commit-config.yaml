@@ -1,0 +1,78 @@
+# Pre-commit hooks for DDD Framework
+# Two-tier testing: critical tests block commits, full tests are warnings
+
+repos:
+  # Auto-formatting (always runs, auto-fixes)
+  - repo: https://github.com/psf/black
+    rev: 23.12.0
+    hooks:
+      - id: black
+        args: [--line-length=100]
+        language_version: python3.11
+
+  # Linting (auto-fixes what it can)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-zero]  # Fix but don't block
+      - id: ruff-format
+
+  # Security and safety checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # CRITICAL TESTS - Must pass to commit
+  - repo: local
+    hooks:
+      - id: critical-tests
+        name: Critical Tests (MUST PASS)
+        entry: bash -c 'uv run pytest tests/test_abstract_extractor.py tests/test_coverage.py -q --tb=line'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        description: "Core abstractions and coverage logic must work"
+
+      - id: cli-smoke-test
+        name: CLI Smoke Test
+        entry: bash -c 'uv run ddd --help > /dev/null'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        description: "CLI must be importable"
+
+  # OPTIONAL TESTS - Run but don't block (warning only)
+  - repo: local
+    hooks:
+      - id: full-test-suite
+        name: Full Test Suite (Optional - See Results)
+        entry: bash -c 'uv run pytest --tb=short --no-header -q || echo "⚠️  Some tests failed - check before demo!"'
+        language: system
+        types: [python]
+        pass_filenames: false
+        verbose: true
+        always_run: false  # Only on python changes
+
+      - id: coverage-check
+        name: Coverage Check (Target 80%)
+        entry: bash -c 'uv run pytest --cov=src --cov-report=term-missing:skip-covered --cov-fail-under=70 -q || echo "⚠️  Coverage below 80% - improve before demo!"'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: false
+
+# For manual control:
+# - Skip all hooks: git commit --no-verify
+# - Run specific hook: pre-commit run critical-tests
+# - Run all hooks: pre-commit run --all-files

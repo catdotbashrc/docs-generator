@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(uv run:*)",
+      "Bash(black:*)",
+      "Bash(ruff check:*)",
+      "Bash(chmod:*)",
+      "Bash(grep:*)",
+      "mcp__serena__activate_project",
+      "mcp__serena__check_onboarding_performed"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
