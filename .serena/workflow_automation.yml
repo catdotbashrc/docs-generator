@@ -1,0 +1,415 @@
+# DDD Workflow Automation Configuration
+# Based on MCP server configuration patterns
+# Optimized for memory efficiency and context relevance
+
+version: 1.0.0
+created: 2025-08-29
+purpose: Workflow automation for Documentation Driven Development
+
+# ====================================
+# Memory Loading Matrix
+# ====================================
+# Smart memory loading based on command patterns
+# Prioritizes context relevance over completeness
+
+memory_loading:
+  # Always loaded on project activation
+  on_activate:
+    always_load:
+      - coverage_philosophy      # Core DDD principles
+      - three_tier_model         # Coverage calculation model
+      - daylight_dimensions      # 8-dimension framework
+    token_budget: 3000
+    
+  # Command-specific memory loading
+  command_patterns:
+    "ddd measure":
+      required:
+        - extractor_registry
+        - artifact_patterns
+        - coverage_algorithms
+      optional:
+        - report_templates
+        - enhancement_roadmap
+      cache: true
+      token_budget: 12000
+      
+    "ddd assert-coverage":
+      required:
+        - coverage_thresholds
+        - aggregation_rules
+        - risk_scoring
+      optional:
+        - testing_extractors
+      cache: false  # Always fresh for validation
+      token_budget: 8000
+      
+    "ddd demo":
+      required:
+        - MVP_Configuration_Coverage_Implementation
+        - config_extraction
+        - risk_scoring
+        - report_templates
+      optional:
+        - ids_to_ddd_evolution
+      cache: true
+      token_budget: 10000
+      
+    "pytest|test":
+      required:
+        - testing_patterns
+        - task_completion_checklist
+      optional:
+        - code_style_conventions
+      cache: true
+      token_budget: 6000
+      
+    "uv run|pip install":
+      required:
+        - UV_GUIDANCE
+        - tech_stack
+        - suggested_commands
+      optional:
+        - project_manifest
+      cache: true
+      token_budget: 4000
+
+# ====================================
+# Automatic Hooks
+# ====================================
+# Event-driven memory updates and tracking
+
+hooks:
+  # After running 'ddd measure'
+  post_measure:
+    trigger: "ddd measure.*"
+    actions:
+      - extract_coverage_metrics
+      - update_coverage_memory
+      - identify_gaps
+      - calculate_risk_scores
+    script: |
+      import json
+      from datetime import datetime
+      
+      def on_measure_complete(result):
+          coverage_data = {
+              'timestamp': datetime.now().isoformat(),
+              'overall_coverage': result.coverage,
+              'dimension_scores': result.dimension_scores,
+              'missing_elements': result.missing_elements,
+              'artifact_count': result.total_artifacts
+          }
+          
+          # Update memories
+          write_memory('last_coverage_metrics', json.dumps(coverage_data))
+          
+          if result.coverage < 0.85:
+              gaps = identify_critical_gaps(result)
+              write_memory('coverage_gaps', gaps)
+              write_memory('coverage_status', 'FAILING')
+          else:
+              write_memory('coverage_status', 'PASSING')
+          
+          # Track trends
+          update_coverage_trends(coverage_data)
+  
+  # After running tests
+  post_test:
+    trigger: "pytest.*|uv run pytest.*"
+    actions:
+      - capture_test_results
+      - update_test_memory
+      - link_to_coverage
+    script: |
+      def on_test_complete(result):
+          if result.failed > 0:
+              write_memory('test_failures', {
+                  'count': result.failed,
+                  'tests': result.failed_tests,
+                  'timestamp': datetime.now().isoformat()
+              })
+              write_memory('test_status', 'FAILING')
+          else:
+              write_memory('test_status', 'PASSING')
+              delete_memory('test_failures')  # Clean up if passing
+  
+  # After file changes
+  post_edit:
+    trigger: "file_modified"
+    conditions:
+      - "src/**/*.py"  # Only Python source files
+    actions:
+      - invalidate_coverage_cache
+      - mark_for_reanalysis
+    script: |
+      def on_file_change(file_path):
+          # Invalidate cached coverage for modified files
+          invalidate_cache(file_path)
+          
+          # Mark for reanalysis
+          pending_analysis = read_memory('pending_analysis', [])
+          if file_path not in pending_analysis:
+              pending_analysis.append(file_path)
+              write_memory('pending_analysis', pending_analysis)
+  
+  # Session checkpoint (every 30 minutes)
+  periodic_checkpoint:
+    trigger: "interval:30m"
+    actions:
+      - save_session_state
+      - compress_memories
+      - cleanup_stale
+    script: |
+      def checkpoint():
+          # Save current state
+          write_memory(f'session_checkpoint_{datetime.now():%Y%m%d_%H%M}', {
+              'active_tasks': get_active_tasks(),
+              'coverage_status': read_memory('coverage_status'),
+              'test_status': read_memory('test_status'),
+              'modified_files': get_modified_files()
+          })
+          
+          # Compress large memories
+          compress_large_memories()
+          
+          # Clean up old checkpoints (keep last 5)
+          cleanup_old_checkpoints(keep=5)
+
+# ====================================
+# Performance Optimization
+# ====================================
+
+performance:
+  # Parallel processing for large codebases
+  parallel_extraction:
+    enabled: true
+    max_workers: 4
+    file_threshold: 50  # Use parallel if >50 files
+    
+  # Caching strategy
+  caching:
+    enabled: true
+    strategies:
+      artifacts:
+        ttl: 3600  # 1 hour
+        key_pattern: "{file_path}:{mtime}"
+      coverage:
+        ttl: 1800  # 30 minutes
+        key_pattern: "{project}:{version}:{timestamp}"
+      extractors:
+        ttl: 7200  # 2 hours
+        key_pattern: "{language}:{extractor_version}"
+    max_cache_size: 100MB
+    
+  # Memory optimization
+  memory_management:
+    max_memory_size: 5000  # tokens per memory
+    auto_compress: true
+    compression_threshold: 4000  # Compress if >4000 tokens
+    compression_strategy: "smart_summary"  # Use AI to summarize
+    
+  # Token optimization
+  token_budgets:
+    max_context: 20000
+    reserve: 2000  # Always keep 2K tokens free
+    priority_loading:
+      - coverage_philosophy  # Always load first
+      - current_task        # Task-specific
+      - recent_changes      # Recent context
+
+# ====================================
+# Workflow Automation Modes
+# ====================================
+
+workflow_modes:
+  # RED Phase: Define specifications
+  red_mode:
+    auto_activate: "ddd init|ddd spec"
+    memories_load:
+      - daylight_dimensions
+      - coverage_thresholds
+      - artifact_taxonomy
+    actions:
+      - create_dimension_specs
+      - define_requirements
+      - set_thresholds
+    
+  # GREEN Phase: Extract documentation
+  green_mode:
+    auto_activate: "ddd measure|ddd extract"
+    memories_load:
+      - extractor_registry
+      - artifact_patterns
+      - coverage_algorithms
+    actions:
+      - run_extractors
+      - calculate_coverage
+      - generate_reports
+    
+  # REFACTOR Phase: Improve quality
+  refactor_mode:
+    auto_activate: "ddd improve|ddd refactor"
+    memories_load:
+      - coverage_gaps
+      - enhancement_roadmap
+      - best_practices
+    actions:
+      - identify_improvements
+      - apply_enhancements
+      - validate_quality
+
+# ====================================
+# Integration Points
+# ====================================
+
+integrations:
+  # CI/CD Integration
+  ci_cd:
+    enabled: true
+    fail_on_low_coverage: true
+    threshold: 0.85
+    report_format: "json"
+    exit_codes:
+      success: 0
+      coverage_failure: 1
+      extraction_error: 2
+    
+  # IDE Integration (future)
+  ide:
+    enabled: false  # Not yet implemented
+    real_time_coverage: true
+    highlight_undocumented: true
+    suggest_improvements: true
+    
+  # Git Hooks
+  git_hooks:
+    pre_commit:
+      - check_documentation_coverage
+      - validate_extractors
+    post_merge:
+      - invalidate_coverage_cache
+      - trigger_full_analysis
+
+# ====================================
+# Monitoring and Metrics
+# ====================================
+
+monitoring:
+  # Track performance metrics
+  metrics:
+    - extraction_time
+    - coverage_calculation_time
+    - memory_usage
+    - cache_hit_rate
+    
+  # Alert thresholds
+  alerts:
+    coverage_drop:
+      threshold: 0.05  # Alert if coverage drops >5%
+      action: write_memory('alert_coverage_drop')
+    
+    extraction_failure:
+      max_failures: 3
+      action: write_memory('alert_extraction_failure')
+    
+    memory_overflow:
+      threshold: 18000  # tokens
+      action: trigger_memory_compression
+    
+  # Reporting
+  reports:
+    daily_summary:
+      enabled: true
+      includes:
+        - coverage_trends
+        - test_results
+        - extraction_performance
+      destination: ".serena/reports/daily_{date}.md"
+    
+    weekly_analysis:
+      enabled: true
+      includes:
+        - dimension_breakdown
+        - improvement_opportunities
+        - risk_assessment
+      destination: ".serena/reports/weekly_{date}.md"
+
+# ====================================
+# Error Handling
+# ====================================
+
+error_handling:
+  # Retry strategies
+  retry:
+    extraction_failures:
+      max_attempts: 3
+      backoff: exponential
+      initial_delay: 1s
+    
+    memory_operations:
+      max_attempts: 2
+      backoff: linear
+      delay: 500ms
+    
+  # Fallback strategies
+  fallbacks:
+    extractor_failure:
+      - use_cached_results
+      - use_basic_extractor
+      - skip_with_warning
+    
+    memory_overflow:
+      - compress_memories
+      - unload_optional
+      - emergency_gc
+    
+  # Recovery procedures
+  recovery:
+    corrupted_memory:
+      - restore_from_checkpoint
+      - reinitialize_memory
+      - alert_user
+    
+    incomplete_extraction:
+      - resume_from_checkpoint
+      - partial_results_with_warning
+      - manual_intervention
+
+# ====================================
+# Advanced Features
+# ====================================
+
+advanced:
+  # AI-Enhanced Memory Selection
+  ai_memory_selection:
+    enabled: false  # Future feature
+    model: "claude-3-sonnet"
+    strategy: "relevance_scoring"
+    
+  # Progressive Enhancement
+  progressive_loading:
+    enabled: true
+    stages:
+      1: core_memories
+      2: task_specific
+      3: optional_context
+      4: historical_data
+    
+  # Smart Compression
+  smart_compression:
+    enabled: true
+    strategies:
+      - remove_redundancy
+      - summarize_verbose
+      - extract_key_points
+    preserve_critical: true
+    
+  # Predictive Loading
+  predictive_loading:
+    enabled: false  # Future feature
+    based_on:
+      - command_history
+      - file_patterns
+      - time_of_day
+      - user_patterns

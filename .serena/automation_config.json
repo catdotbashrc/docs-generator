@@ -1,0 +1,22 @@
+{
+  "automation": {
+    "enabled": true,
+    "workflow_hooks": true,
+    "memory_optimization": {
+      "max_memory_size": 4000,
+      "auto_compress": true,
+      "relevance_threshold": 0.7,
+      "cache_ttl": 3600
+    },
+    "context_management": {
+      "max_context_tokens": 15000,
+      "priority_loading": true,
+      "lazy_evaluation": true
+    },
+    "tracking": {
+      "coverage_trend": true,
+      "failure_tracking": true,
+      "risk_monitoring": true
+    }
+  }
+}

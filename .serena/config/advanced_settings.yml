@@ -1,0 +1,263 @@
+# Advanced Serena Configuration for DDD Framework
+# Optimized for memory efficiency and context relevance
+
+version: 2.0.0
+project_name: ddd-worktree
+language: python
+
+# Memory Management Configuration
+memory_management:
+  # Organized structure support
+  structure:
+    enabled: true
+    categories:
+      - core          # Always loaded
+      - coverage      # Coverage algorithms
+      - extraction    # Analysis patterns
+      - implementation # Guides and commands
+      - sessions      # Temporary state
+      - archive       # Deprecated items
+  
+  # Automatic loading based on context
+  context_aware_loading:
+    enabled: true
+    strategies:
+      command_based:
+        "ddd measure":
+          priority_1: ["core/*"]
+          priority_2: ["coverage/MEMORY_LOADING_MATRIX.md", "coverage/DDD_MEMORY_ARCHITECTURE_SPEC.md"]
+          priority_3: ["extraction/deep_analysis_report_2025.md"]
+          max_tokens: 12000
+        
+        "ddd assert":
+          priority_1: ["core/*"]
+          priority_2: ["coverage/MVP_Configuration_Coverage_Implementation.md"]
+          priority_3: ["coverage/technical_learnings_config_coverage.md"]
+          max_tokens: 8000
+        
+        "ddd demo":
+          priority_1: ["core/project_overview.md", "core/MASTER_INDEX.md"]
+          priority_2: ["coverage/MVP_Configuration_Coverage_Implementation.md"]
+          priority_3: ["implementation/suggested_commands.md"]
+          max_tokens: 10000
+        
+        "pytest":
+          priority_1: ["implementation/task_completion_checklist.md"]
+          priority_2: ["implementation/code_style_conventions.md"]
+          priority_3: ["coverage/technical_learnings_config_coverage.md"]
+          max_tokens: 7000
+    
+    file_pattern_based:
+      "*.py":
+        load: ["implementation/code_style_conventions.md", "core/tech_stack.md"]
+      "test_*.py":
+        load: ["implementation/task_completion_checklist.md"]
+      "*.md":
+        load: ["implementation/MEMORY_LOADING_GUIDE.md"]
+  
+  # Memory lifecycle management
+  lifecycle:
+    auto_cleanup:
+      enabled: true
+      rules:
+        - type: "session"
+          age_days: 7
+          action: "archive"
+        - type: "checkpoint"
+          age_days: 30
+          action: "delete"
+        - type: "empty"
+          action: "delete_immediate"
+    
+    auto_create:
+      on_command_failure: true
+      on_coverage_below_threshold: true
+      on_high_risk_detection: true
+  
+  # Compression for large memories
+  compression:
+    enabled: true
+    threshold_tokens: 4000
+    method: "summary_with_key_points"
+    preserve_code_blocks: true
+
+# Performance Optimization
+performance:
+  # Caching configuration
+  caching:
+    enabled: true
+    ttl_seconds: 3600
+    max_cache_size_mb: 50
+    cache_location: ".serena/cache"
+    invalidate_on_file_change: true
+  
+  # Parallel processing
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+    operations:
+      - "file_search"
+      - "pattern_matching"
+      - "memory_loading"
+  
+  # Resource limits
+  resource_limits:
+    max_memory_size_per_file: 5000  # tokens
+    max_total_context: 15000        # tokens
+    max_search_results: 100
+    timeout_seconds: 30
+
+# Intelligent Hooks
+hooks:
+  # Pre-command hooks
+  pre_command:
+    - name: "memory_optimizer"
+      trigger: ".*"
+      action: "optimize_memory_loading"
+    
+    - name: "context_analyzer"
+      trigger: "ddd.*"
+      action: "analyze_command_context"
+  
+  # Post-command hooks
+  post_command:
+    - name: "coverage_tracker"
+      trigger: "ddd measure"
+      action: "update_coverage_memory"
+    
+    - name: "failure_logger"
+      trigger: "ddd assert-coverage"
+      on_failure: true
+      action: "log_assertion_failure"
+    
+    - name: "risk_monitor"
+      trigger: "ddd demo"
+      action: "monitor_high_risk_configs"
+  
+  # File change hooks
+  on_file_change:
+    - pattern: "*.py"
+      action: "invalidate_ast_cache"
+    
+    - pattern: "pyproject.toml"
+      action: "update_tech_stack_memory"
+    
+    - pattern: ".serena/memories/**/*.md"
+      action: "reindex_memories"
+
+# Tool Configuration
+tools:
+  # Symbol operations optimization
+  symbol_operations:
+    prefer_over_regex: true
+    cache_symbol_maps: true
+    incremental_parsing: true
+  
+  # Search optimization
+  search:
+    use_ripgrep: true
+    parallel_search: true
+    respect_gitignore: true
+    max_file_size_mb: 10
+  
+  # Memory operations
+  memory_operations:
+    atomic_writes: true
+    backup_before_write: true
+    validate_metadata: true
+
+# Integration Points
+integrations:
+  # Git integration
+  git:
+    auto_commit_memories: false
+    track_memory_changes: true
+    ignore_patterns:
+      - ".serena/cache/**"
+      - ".serena/sessions/SESSION_*.md"
+  
+  # CI/CD integration
+  ci_cd:
+    fail_on_coverage_below: 85
+    generate_coverage_report: true
+    memory_artifact: true
+  
+  # IDE integration (future)
+  ide:
+    lsp_support: true
+    real_time_coverage: false
+    memory_suggestions: true
+
+# Monitoring and Metrics
+monitoring:
+  enabled: true
+  metrics:
+    - name: "memory_load_time"
+      threshold_ms: 100
+      alert: true
+    
+    - name: "context_relevance_score"
+      threshold: 0.85
+      alert: false
+    
+    - name: "cache_hit_rate"
+      threshold: 0.7
+      alert: false
+    
+    - name: "token_usage_efficiency"
+      threshold: 0.6
+      alert: true
+  
+  logging:
+    level: "INFO"
+    file: ".serena/logs/serena.log"
+    rotation: "daily"
+    retention_days: 30
+
+# Security and Safety
+security:
+  # Sensitive data handling
+  sensitive_data:
+    mask_in_memories: true
+    patterns:
+      - "password"
+      - "secret"
+      - "token"
+      - "api_key"
+  
+  # Access control
+  access_control:
+    read_only_patterns:
+      - ".git/**"
+      - "node_modules/**"
+    
+    restricted_operations:
+      - operation: "delete_memory"
+        require_confirmation: true
+      
+      - operation: "write_memory"
+        validate_size: true
+        max_size_tokens: 10000
+
+# Development Modes
+modes:
+  # RED-GREEN-REFACTOR mode support
+  red_green_refactor:
+    red:
+      focus_memories: ["coverage/DDD_MEMORY_ARCHITECTURE_SPEC.md"]
+      suggest_specs: true
+    
+    green:
+      focus_memories: ["extraction/*", "coverage/MEMORY_LOADING_MATRIX.md"]
+      track_progress: true
+    
+    refactor:
+      focus_memories: ["implementation/*", "coverage/technical_learnings_*"]
+      suggest_improvements: true
+  
+  # Debug mode
+  debug:
+    verbose_logging: true
+    show_memory_loading: true
+    track_token_usage: true
+    performance_profiling: true

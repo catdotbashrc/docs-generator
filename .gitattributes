@@ -1,0 +1,200 @@
+# DDD Framework - Git Attributes Configuration
+# Ensures consistent handling of files across different platforms
+
+# ═══════════════════════════════════════════════════════════════════════
+# Default Behavior
+# ═══════════════════════════════════════════════════════════════════════
+
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# ═══════════════════════════════════════════════════════════════════════
+# Source Code
+# ═══════════════════════════════════════════════════════════════════════
+
+# Python
+*.py            text diff=python
+*.pyw           text diff=python
+*.pyx           text diff=python
+*.pyz           text diff=python
+*.pyi           text diff=python
+*.pyc           binary
+*.pyo           binary
+*.pyd           binary
+
+# JavaScript/TypeScript
+*.js            text
+*.jsx           text
+*.ts            text
+*.tsx           text
+*.mjs           text
+*.cjs           text
+
+# Shell scripts
+*.sh            text eol=lf
+*.bash          text eol=lf
+*.zsh           text eol=lf
+*.fish          text eol=lf
+
+# ═══════════════════════════════════════════════════════════════════════
+# Configuration Files
+# ═══════════════════════════════════════════════════════════════════════
+
+# YAML
+*.yml           text
+*.yaml          text
+
+# JSON
+*.json          text
+*.jsonc         text
+*.json5         text
+
+# TOML
+*.toml          text
+pyproject.toml  text
+
+# INI/Config
+*.ini           text
+*.cfg           text
+*.conf          text
+*.config        text
+
+# Environment
+.env*           text
+*.env           text
+
+# ═══════════════════════════════════════════════════════════════════════
+# Documentation
+# ═══════════════════════════════════════════════════════════════════════
+
+# Markdown
+*.md            text diff=markdown
+*.markdown      text diff=markdown
+*.mdown         text diff=markdown
+*.mkd           text diff=markdown
+*.mdx           text
+
+# reStructuredText
+*.rst           text
+*.rest          text
+*.restx         text
+*.rtxt          text
+
+# Plain text
+*.txt           text
+README*         text
+LICENSE*        text
+NOTICE*         text
+AUTHORS*        text
+CONTRIBUTORS*   text
+CHANGELOG*      text
+HISTORY*        text
+NEWS*           text
+TODO*           text
+MANIFEST*       text
+
+# ═══════════════════════════════════════════════════════════════════════
+# Web Files
+# ═══════════════════════════════════════════════════════════════════════
+
+*.html          text diff=html
+*.htm           text diff=html
+*.css           text diff=css
+*.scss          text diff=css
+*.sass          text
+*.less          text
+*.xml           text
+
+# ═══════════════════════════════════════════════════════════════════════
+# Git Files
+# ═══════════════════════════════════════════════════════════════════════
+
+.gitignore      text
+.gitattributes  text
+.gitmodules     text
+.gitconfig      text
+.gitmessage     text
+
+# ═══════════════════════════════════════════════════════════════════════
+# Build Files
+# ═══════════════════════════════════════════════════════════════════════
+
+Makefile        text
+makefile        text
+*.make          text
+*.mk            text
+
+# Docker
+Dockerfile*     text
+*.dockerfile    text
+docker-compose* text
+
+# ═══════════════════════════════════════════════════════════════════════
+# Binary Files (should not be modified)
+# ═══════════════════════════════════════════════════════════════════════
+
+# Images
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.svg           text
+*.webp          binary
+
+# Fonts
+*.ttf           binary
+*.otf           binary
+*.woff          binary
+*.woff2         binary
+*.eot           binary
+
+# Archives
+*.zip           binary
+*.tar           binary
+*.gz            binary
+*.bz2           binary
+*.7z            binary
+*.rar           binary
+
+# Databases
+*.db            binary
+*.sqlite        binary
+*.sqlite3       binary
+
+# Compiled/Binary
+*.exe           binary
+*.dll           binary
+*.so            binary
+*.dylib         binary
+*.pyc           binary
+*.pyo           binary
+*.pyd           binary
+*.whl           binary
+
+# ═══════════════════════════════════════════════════════════════════════
+# Special Handling
+# ═══════════════════════════════════════════════════════════════════════
+
+# Jupyter notebooks - treat as text but don't show huge diffs
+*.ipynb         text diff=json
+
+# Lock files - treat as binary to avoid merge conflicts
+package-lock.json    binary
+yarn.lock            binary
+poetry.lock          binary
+Pipfile.lock         binary
+
+# ═══════════════════════════════════════════════════════════════════════
+# Export Ignore (files to exclude from archives)
+# ═══════════════════════════════════════════════════════════════════════
+
+.github/        export-ignore
+.gitignore      export-ignore
+.gitattributes  export-ignore
+tests/          export-ignore
+docs/           export-ignore
+*.pyc           export-ignore
+__pycache__/    export-ignore
+.pytest_cache/  export-ignore
+.coverage       export-ignore
