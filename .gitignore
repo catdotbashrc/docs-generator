@@ -241,6 +241,10 @@ cython_debug/
 *.backup
 *.old
 
+# Auto-generated timestamp files
+*-*-slug-*.md
+[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-*.md
+
 # Database files
 *.db
 *.sqlite
@@ -318,6 +322,9 @@ _site/
 
 # Keep test fixtures
 !tests/fixtures/**
+
+# Baseline test data (Ansible codebase for testing)
+baseline/
 
 # Keep example configurations
 !examples/**/*.yaml
