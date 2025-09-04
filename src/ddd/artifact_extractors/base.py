@@ -202,8 +202,8 @@ class MaintenanceDocument:
                     diagnostic_steps=diagnostic_steps or ["Check required permissions"],
                     resolution_steps=[
                         "Identify missing permissions from error messages",
-                        "Grant required permissions to service account/role",
-                        "Verify permissions are properly applied",
+                        "Update IAM policy to grant required permissions to service account/role",
+                        "Verify permissions policy is properly applied",
                         "Test access with updated permissions",
                     ],
                     preventive_measures=[

@@ -90,9 +90,10 @@ class TestCLICommands:
     @patch("cli.DocumentationCoverage")
     def test_assert_coverage_passing(self, mock_coverage_class, runner, temp_project):
         """Test assert-coverage command when passing"""
-        # Mock the coverage to pass
-        mock_coverage = MagicMock()
-        mock_coverage.assert_coverage.return_value = None  # No exception
+        # Create mock with spec to avoid 'assert' prefix issue
+        from ddd.coverage import DocumentationCoverage
+        mock_coverage = MagicMock(spec=DocumentationCoverage)
+        mock_coverage.assert_coverage.return_value = None  # No exception means pass
         mock_coverage_class.return_value = mock_coverage
 
         result = runner.invoke(assert_coverage, [str(temp_project), "--min-coverage", "0.5"])
@@ -103,8 +104,9 @@ class TestCLICommands:
     @patch("cli.DocumentationCoverage")
     def test_assert_coverage_failing(self, mock_coverage_class, runner, temp_project):
         """Test assert-coverage command when failing"""
-        # Mock the coverage to fail
-        mock_coverage = MagicMock()
+        # Create mock with spec to avoid 'assert' prefix issue
+        from ddd.coverage import DocumentationCoverage
+        mock_coverage = MagicMock(spec=DocumentationCoverage)
         mock_coverage.assert_coverage.side_effect = AssertionError(
             "Documentation coverage 0.4 below minimum 0.85"
         )

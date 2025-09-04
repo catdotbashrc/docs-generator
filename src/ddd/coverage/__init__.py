@@ -96,15 +96,30 @@ class DocumentationCoverage:
 
     def _calculate_completeness_coverage(self, spec: DimensionSpec, data: Dict) -> float:
         """Level 2: Are all required fields present?"""
-        if not data or not spec.required_fields:
-            return 1.0 if not spec.required_fields else 0.0
+        # Fix: Return 0% for empty data instead of 100%
+        if not data:
+            return 0.0
+            
+        if not spec.required_fields:
+            # No fields required, but check if elements have actual content
+            # If elements exist but are empty/None, should not score 100%
+            has_content = False
+            for key, value in data.items():
+                if value is not None and value != {} and value != []:
+                    has_content = True
+                    break
+            return 1.0 if has_content else 0.0
 
         total_fields = 0
         found_fields = 0
 
         for item_type, required_fields in spec.required_fields.items():
             # Check if we have any items of this type
-            items = data.get(item_type + "s", []) or data.get(item_type, [])
+            # Handle both singular and plural forms
+            items = data.get(item_type, [])
+            if not items and not item_type.endswith("s"):
+                # Try plural form if the spec key is singular
+                items = data.get(item_type + "s", [])
             if not items:
                 continue
 
@@ -114,10 +129,14 @@ class DocumentationCoverage:
                     if field in item:
                         found_fields += 1
 
-        return found_fields / total_fields if total_fields > 0 else 0.5
+        return found_fields / total_fields if total_fields > 0 else 0.0
 
     def _calculate_usefulness_coverage(self, spec: DimensionSpec, data: Dict) -> float:
         """Level 3: Can someone use this at 2AM?"""
+        # Fix: Return 0% for empty data instead of 100%
+        if not data:
+            return 0.0
+            
         # Simplified for MVP - check for key usefulness indicators
         usefulness_indicators = {
             "dependencies": ["failure_impact", "recovery_procedure"],
@@ -128,14 +147,20 @@ class DocumentationCoverage:
 
         indicators = usefulness_indicators.get(spec.name, [])
         if not indicators:
-            return 1.0  # No specific usefulness criteria
+            # No specific usefulness criteria, but check for non-empty content
+            has_useful_content = False
+            for key, value in data.items():
+                if value is not None and value != {} and value != []:
+                    has_useful_content = True
+                    break
+            return 1.0 if has_useful_content else 0.0
 
         found = 0
         for indicator in indicators:
             if self._has_indicator(data, indicator):
                 found += 1
 
-        return found / len(indicators) if indicators else 1.0
+        return found / len(indicators) if indicators else 0.0
 
     def _has_indicator(self, data: Dict, indicator: str) -> bool:
         """Check if data contains a usefulness indicator"""

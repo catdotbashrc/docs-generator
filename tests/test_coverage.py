@@ -131,7 +131,7 @@ class TestDocumentationCoverage:
         spec = DimensionSpec(
             name="test",
             required_elements=[],
-            required_fields={"dependency": ["name", "version", "purpose"]},
+            required_fields={"dependencies": ["name", "version", "purpose"]},
             minimum_coverage=0.8,
         )
 
@@ -242,22 +242,16 @@ class TestDocumentationCoverage:
         
         result = coverage_calculator.measure(empty_docs)
         
-        # These assertions will FAIL with current implementation (bug)
-        # Empty dimensions should score 0%, but they score 70% due to:
+        # Bug fixed! Empty dimensions now correctly score 0%
         # - Element coverage: 0% (no data)
-        # - Completeness: 100% (no required fields = passes)
-        # - Usefulness: 100% (no indicators = passes)
-        # - Weighted: 0.3*0 + 0.4*1 + 0.3*1 = 0.7 (70%)
+        # - Completeness: 0% (empty data returns 0% now)
+        # - Usefulness: 0% (empty data returns 0% now)
+        # - Weighted: 0.3*0 + 0.4*0 + 0.3*0 = 0.0 (0%)
         
-        # TODO: Fix this bug in coverage calculation
-        # assert result.dimension_scores["yearbook"] < 0.1, "Empty yearbook should score ~0%"
-        # assert result.dimension_scores["governance"] < 0.1, "Empty governance should score ~0%"
-        # assert result.dimension_scores["health"] < 0.1, "Empty health should score ~0%"
-        # assert result.dimension_scores["testing"] < 0.1, "Empty testing should score ~0%"
-        
-        # For now, document the current (incorrect) behavior
-        assert result.dimension_scores["yearbook"] == pytest.approx(0.7, 0.01), \
-            "Bug: Empty dimensions incorrectly score 70%"
+        assert result.dimension_scores["yearbook"] < 0.1, "Empty yearbook should score ~0%"
+        assert result.dimension_scores["governance"] < 0.1, "Empty governance should score ~0%"
+        assert result.dimension_scores["health"] < 0.1, "Empty health should score ~0%"
+        assert result.dimension_scores["testing"] < 0.1, "Empty testing should score ~0%"
 
     def test_completeness_with_no_required_fields(self, coverage_calculator):
         """Test completeness calculation when no fields are required."""
@@ -275,9 +269,8 @@ class TestDocumentationCoverage:
             {"element1": None}
         )
         
-        # This reveals the bug: completeness is 100% even with empty data
-        # TODO: Fix this - should check if element has actual content
-        assert completeness == 1.0, "Bug: Empty elements get 100% completeness"
+        # Bug fixed! Empty/None elements now correctly get 0% completeness
+        assert completeness == 0.0, "Fixed: Empty elements correctly get 0% completeness"
         
     def test_usefulness_without_indicators(self, coverage_calculator):
         """Test usefulness calculation for dimensions without specific indicators."""
@@ -294,7 +287,7 @@ class TestDocumentationCoverage:
         
         # This reveals the bug: usefulness is 100% even with no data
         # TODO: Fix this - should return 0% for empty data
-        assert usefulness == 1.0, "Bug: Empty data gets 100% usefulness when no indicators"
+        assert usefulness == 0.0, "Fixed: Empty data correctly gets 0% usefulness"
 
     def test_real_ansible_project_coverage(self, coverage_calculator):
         """Test coverage calculation with real Ansible project structure."""
@@ -418,7 +411,11 @@ class TestFalsePositiveScoring:
     """Test the false positive 70% scoring issue for empty dimensions."""
     
     def test_empty_dimension_should_not_score_high(self):
-        """Empty dimensions should score 0%, not 70%."""
+        """Empty dimensions should score 0%, not 70%.
+        
+        This test verifies the fix for the false positive bug where empty
+        dimensions were incorrectly scoring 70% instead of 0%.
+        """
         # Arrange
         coverage = DocumentationCoverage()
         empty_docs = {
@@ -431,13 +428,19 @@ class TestFalsePositiveScoring:
         # Act
         result = coverage.measure(empty_docs)
         
-        # Assert - these should NOT be 70%!
-        # TODO: Fix this bug - empty dimensions should score 0%
-        # Currently documenting the bug for TDD approach
-        assert result.dimension_scores["yearbook"] > 0.6, \
-            "Bug documented: Empty yearbook dimension scores 70% instead of 0%"
-        assert result.dimension_scores["governance"] > 0.6, \
-            "Bug documented: Empty governance dimension scores 70% instead of 0%"
+        # Assert - Bug is FIXED! Empty dimensions now correctly score 0%
+        assert result.dimension_scores["yearbook"] == 0.0, \
+            "Empty yearbook dimension should score 0%"
+        assert result.dimension_scores["governance"] == 0.0, \
+            "Empty governance dimension should score 0%"
+        assert result.dimension_scores["health"] == 0.0, \
+            "Empty health dimension should score 0%"
+        assert result.dimension_scores["testing"] == 0.0, \
+            "Empty testing dimension should score 0%"
+        
+        # Verify overall coverage is also 0%
+        assert result.overall_coverage == 0.0, \
+            "Overall coverage should be 0% when all dimensions are empty"
     
     def test_missing_dimension_should_score_zero(self):
         """Completely missing dimensions should score 0%."""
@@ -473,12 +476,16 @@ class TestFalsePositiveScoring:
             {"element1": None}  # Element exists but is empty
         )
         
-        # TODO: Fix - should not be 100% for empty elements
-        assert completeness == 1.0, \
-            "Bug documented: Empty elements incorrectly have 100% completeness"
+        # Bug fixed - empty elements now return 0% completeness
+        assert completeness == 0.0, \
+            "Fixed: Empty elements correctly return 0% completeness"
     
     def test_usefulness_should_not_default_to_100_percent(self):
-        """Usefulness coverage should not default to 100% when no indicators exist."""
+        """Usefulness coverage should not default to 100% when no indicators exist.
+        
+        This test verifies the fix for the false positive bug where empty
+        data was incorrectly scoring 100% usefulness.
+        """
         spec = DimensionSpec(
             name="yearbook",  # No usefulness indicators defined
             required_elements=["changelog"],
@@ -493,9 +500,25 @@ class TestFalsePositiveScoring:
             {}  # Empty data
         )
         
-        # TODO: Fix - should not be 100% for empty data
-        assert usefulness == 1.0, \
-            "Bug documented: Empty data incorrectly has 100% usefulness"
+        # Bug is FIXED! Empty data now correctly returns 0% usefulness
+        assert usefulness == 0.0, \
+            "Empty data should have 0% usefulness, not 100%"
+        
+        # Also test with None value
+        usefulness_none = coverage._calculate_usefulness_coverage(
+            spec,
+            {"changelog": None}  # Element exists but is None
+        )
+        assert usefulness_none == 0.0, \
+            "None values should have 0% usefulness"
+        
+        # Test with empty dict value
+        usefulness_empty = coverage._calculate_usefulness_coverage(
+            spec,
+            {"changelog": {}}  # Element exists but is empty dict
+        )
+        assert usefulness_empty == 0.0, \
+            "Empty dict values should have 0% usefulness"
 
 
 class TestMissingExtractorDetection:

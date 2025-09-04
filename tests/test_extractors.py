@@ -36,8 +36,7 @@ class TestDependencyExtractor:
         }
 
         package_file = temp_project_dir / "package.json"
-        with open(package_file, "w") as f:
-            json.dump(package_json, f)
+        package_file.write_text(json.dumps(package_json, indent=2))
 
         # Create a package-lock.json
         (temp_project_dir / "package-lock.json").touch()
@@ -69,8 +68,7 @@ dependencies = [
 """
 
         pyproject_file = temp_project_dir / "pyproject.toml"
-        with open(pyproject_file, "w") as f:
-            f.write(pyproject_content)
+        pyproject_file.write_text(pyproject_content)
 
         # Extract dependencies
         result = extractor.extract(str(temp_project_dir))
@@ -95,8 +93,7 @@ pytest==7.4.0
 """
 
         requirements_file = temp_project_dir / "requirements.txt"
-        with open(requirements_file, "w") as f:
-            f.write(requirements_content)
+        requirements_file.write_text(requirements_content)
 
         # Extract dependencies
         result = extractor.extract(str(temp_project_dir))
@@ -114,8 +111,7 @@ pytest==7.4.0
         """Test detecting yarn as package manager"""
         # Create package.json
         package_json = {"name": "test", "dependencies": {}}
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
 
         # Create yarn.lock
         (temp_project_dir / "yarn.lock").touch()
@@ -128,8 +124,7 @@ pytest==7.4.0
         """Test detecting pnpm as package manager"""
         # Create package.json
         package_json = {"name": "test", "dependencies": {}}
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
 
         # Create pnpm-lock.yaml
         (temp_project_dir / "pnpm-lock.yaml").touch()
@@ -145,8 +140,7 @@ pytest==7.4.0
 [project]
 dependencies = []
 """
-        with open(temp_project_dir / "pyproject.toml", "w") as f:
-            f.write(pyproject_content)
+        (temp_project_dir / "pyproject.toml").write_text(pyproject_content)
 
         # Create poetry.lock
         (temp_project_dir / "poetry.lock").touch()
@@ -158,13 +152,11 @@ dependencies = []
     def test_extract_with_nvmrc(self, extractor, temp_project_dir):
         """Test reading Node version from .nvmrc"""
         # Create .nvmrc
-        with open(temp_project_dir / ".nvmrc", "w") as f:
-            f.write("18.17.0\n")
+        (temp_project_dir / ".nvmrc").write_text("18.17.0\n")
 
         # Create package.json without engines
         package_json = {"name": "test", "dependencies": {}}
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
 
         result = extractor.extract(str(temp_project_dir))
         assert result["node_version"] == "18.17.0"
@@ -194,12 +186,10 @@ dependencies = []
         """Test project with both JavaScript and Python dependencies"""
         # Create package.json
         package_json = {"dependencies": {"express": "^4.18.0"}}
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
 
         # Create requirements.txt
-        with open(temp_project_dir / "requirements.txt", "w") as f:
-            f.write("flask==2.3.0\n")
+        (temp_project_dir / "requirements.txt").write_text("flask==2.3.0\n")
 
         result = extractor.extract(str(temp_project_dir))
 
@@ -234,16 +224,14 @@ resolvelib>=0.5.3,<2.0.0
 """
         
         requirements_file = temp_project_dir / "requirements.txt"
-        with open(requirements_file, "w") as f:
-            f.write(requirements_content)
+        requirements_file.write_text(requirements_content)
         
         pyproject_content = """
 [project]
 requires-python = ">=3.12"
 """
         pyproject_file = temp_project_dir / "pyproject.toml"
-        with open(pyproject_file, "w") as f:
-            f.write(pyproject_content)
+        pyproject_file.write_text(pyproject_content)
         
         # Extract dependencies
         result = extractor.extract(str(temp_project_dir))
@@ -280,8 +268,7 @@ requires-python = ">=3.12"
         }
         
         package_file = temp_project_dir / "package.json"
-        with open(package_file, "w") as f:
-            json.dump(package_json, f)
+        package_file.write_text(json.dumps(package_json, indent=2))
         
         # Create package-lock.json
         (temp_project_dir / "package-lock.json").touch()
@@ -309,8 +296,7 @@ requires-python = ">=3.12"
         # Test Python project detection
         requirements_file = temp_project_dir / "requirements.txt"
         with open(requirements_file, "w") as f:
-            f.write("django==4.2.0
-")
+            f.write("django==4.2.0\n")
         
         result = extractor.extract(str(temp_project_dir))
         
@@ -330,18 +316,11 @@ requires-python = ">=3.12"
             "dependencies": {"react": "^18.0.0"},
             "engines": {"node": ">=16.0.0"}
         }
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
         
-        with open(temp_project_dir / "requirements.txt", "w") as f:
-            f.write("flask==2.3.0
-celery==5.3.0
-")
+        (temp_project_dir / "requirements.txt").write_text("flask==2.3.0\ncelery==5.3.0\n")
         
-        with open(temp_project_dir / "pyproject.toml", "w") as f:
-            f.write('[project]
-requires-python = ">=3.9"
-')
+        (temp_project_dir / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.9"\n')
         
         result = extractor.extract(str(temp_project_dir))
         
@@ -368,8 +347,7 @@ requires-python = ">=3.9"
             }
         }
         
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
         
         result = extractor.extract(str(temp_project_dir))
         
@@ -426,8 +404,7 @@ requires-python = ">=3.9"
             }
         }
         
-        with open(temp_project_dir / "package.json", "w") as f:
-            json.dump(package_json, f)
+        (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
         
         result = extractor.extract(str(temp_project_dir))
         

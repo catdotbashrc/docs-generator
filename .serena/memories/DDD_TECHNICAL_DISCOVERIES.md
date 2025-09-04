@@ -6,6 +6,14 @@ Status: ACTIVE
 
 ## Discovered Patterns
 
+### 🎯 AST Architecture Decision (PIVOTAL)
+
+**The Revelation**: Abstract Syntax Trees are THE standard for parsing code - not regex.
+- **Python**: `ast` module for proper code structure parsing
+- **Future**: Each language gets its AST (JS→Babel, Java→JavaParser, etc.)
+- **Impact**: 50 lines complex regex → 30 lines clean AST, zero edge cases
+- **Rule**: Use AST for code structure, regex only for simple strings
+
 ### Testing Architecture Insights
 
 **Two-Tier Testing Strategy**
