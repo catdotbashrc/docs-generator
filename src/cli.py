@@ -15,6 +15,7 @@ from rich.table import Table
 from ddd import DependencyExtractor, DocumentationCoverage
 from ddd.artifact_extractors import ArtifactCoverageCalculator
 from ddd.config_extractors import ConfigCoverageCalculator
+from ddd.mvp.cli_mvp import mvp_cli
 
 console = Console()
 
@@ -416,6 +417,10 @@ def config_coverage(project_path, output, show_all):
     # Exit with error code if failed
     if not result.passed:
         exit(1)
+
+
+# Add MVP commands to main CLI
+cli.add_command(mvp_cli)
 
 
 def main():

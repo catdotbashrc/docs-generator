@@ -241,6 +241,14 @@ cython_debug/
 *.backup
 *.old
 
+# One-time refactoring scripts (if recreated)
+refactor_*.py
+migrate_*.py
+cleanup_*.py
+
+# Redundant setup files (using pyproject.toml)
+setup.py
+
 # Auto-generated timestamp files
 *-*-slug-*.md
 [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-*.md
