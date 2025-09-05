@@ -1,0 +1,37 @@
+---
+- name: Daily web server maintenance
+  hosts: web_servers
+  become: yes
+  
+  tasks:
+    - name: Check nginx service status
+      ansible.builtin.shell: |
+        systemctl status nginx
+        
+    - name: Review nginx access logs
+      ansible.builtin.shell: |
+        tail -50 /var/log/nginx/access.log
+        
+    - name: Check for nginx error logs
+      ansible.builtin.shell: |
+        grep -i error /var/log/nginx/error.log | tail -20
+        
+    - name: Test website connectivity
+      ansible.builtin.shell: |
+        curl -I http://localhost/ | head -1
+        
+    - name: Check SSL certificate expiry
+      ansible.builtin.shell: |
+        openssl x509 -in /etc/ssl/certs/server.crt -enddate -noout
+        
+    - name: Monitor disk space
+      ansible.builtin.shell: |
+        df -h | grep -E "(8[0-9]%|9[0-9]%|100%)"
+        
+    - name: Check running processes
+      ansible.builtin.shell: |
+        ps aux | grep nginx | grep -v grep
+        
+    - name: Verify log rotation
+      ansible.builtin.shell: |
+        ls -la /var/log/nginx/*.gz | head -5

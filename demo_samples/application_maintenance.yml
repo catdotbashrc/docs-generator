@@ -1,0 +1,37 @@
+---
+- name: Daily application maintenance
+  hosts: app_servers  
+  become: yes
+  
+  tasks:
+    - name: Check application service status
+      ansible.builtin.shell: |
+        supervisorctl status app-worker
+        
+    - name: Review application logs for errors
+      ansible.builtin.shell: |
+        tail -100 /var/log/app/application.log | grep -i "error\|exception\|fatal"
+        
+    - name: Test application health endpoint
+      ansible.builtin.shell: |
+        curl -f http://localhost:8080/api/health
+        
+    - name: Check Redis connectivity
+      ansible.builtin.shell: |
+        redis-cli ping
+        
+    - name: Monitor queue lengths
+      ansible.builtin.shell: |
+        rabbitmqctl list_queues name messages
+        
+    - name: Check application disk usage
+      ansible.builtin.shell: |
+        du -sh /var/log/app/ /opt/app/uploads/
+        
+    - name: Verify backup completions
+      ansible.builtin.shell: |
+        ls -la /backups/app/ | find . -name "*.tar.gz" -mtime -1
+        
+    - name: Test database connections
+      ansible.builtin.shell: |
+        mysql -u app_user -p'$APP_DB_PASSWORD' -e "SELECT 1;" app_db

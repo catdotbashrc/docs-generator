@@ -1,0 +1,37 @@
+---
+- name: Daily container maintenance
+  hosts: docker_hosts
+  become: yes
+  
+  tasks:
+    - name: Check docker service status
+      ansible.builtin.shell: |
+        systemctl status docker
+        
+    - name: List running containers
+      ansible.builtin.shell: |
+        docker ps
+        
+    - name: Check container resource usage
+      ansible.builtin.shell: |
+        docker stats --no-stream
+        
+    - name: Review container logs
+      ansible.builtin.shell: |
+        docker logs --since 24h app-container | tail -50
+        
+    - name: Check for unhealthy containers
+      ansible.builtin.shell: |
+        docker ps --filter health=unhealthy
+        
+    - name: Monitor docker disk usage
+      ansible.builtin.shell: |
+        docker system df
+        
+    - name: Test container connectivity
+      ansible.builtin.shell: |
+        curl -f http://localhost:8080/health || echo "Health check failed"
+        
+    - name: Check docker daemon logs
+      ansible.builtin.shell: |
+        journalctl -u docker --since "24 hours ago" | grep -i error

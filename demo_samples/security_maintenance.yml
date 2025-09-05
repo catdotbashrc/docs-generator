@@ -1,0 +1,33 @@
+---
+- name: Daily security maintenance
+  hosts: all_servers
+  become: yes
+  
+  tasks:
+    - name: Check for failed login attempts
+      ansible.builtin.shell: |
+        grep "Failed password" /var/log/auth.log | tail -20
+        
+    - name: Review sudo usage
+      ansible.builtin.shell: |
+        grep sudo /var/log/auth.log | tail -10
+        
+    - name: Check file permissions on critical files
+      ansible.builtin.shell: |
+        stat -c "%a %n" /etc/passwd /etc/shadow /etc/ssh/sshd_config
+        
+    - name: Verify certificate expiry dates
+      ansible.builtin.shell: |
+        find /etc/ssl/certs/ -name "*.crt" -exec openssl x509 -in {} -enddate -noout \;
+        
+    - name: Check for unusual network connections
+      ansible.builtin.shell: |
+        netstat -tuln | grep LISTEN
+        
+    - name: Review system logs for security events
+      ansible.builtin.shell: |
+        grep -i "security\|breach\|intrusion" /var/log/syslog | tail -10
+        
+    - name: Check user account status
+      ansible.builtin.shell: |
+        grep -E "^[^:]+:[^!*]" /etc/shadow | wc -l

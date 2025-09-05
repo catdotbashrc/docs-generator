@@ -1,0 +1,33 @@
+---
+- name: Daily database maintenance tasks
+  hosts: database_servers
+  become: yes
+  
+  tasks:
+    - name: Check PostgreSQL service status
+      ansible.builtin.shell: |
+        systemctl status postgresql
+        
+    - name: Monitor database connections
+      ansible.builtin.shell: |
+        sudo -u postgres psql -c "SELECT count(*) FROM pg_stat_activity;"
+        
+    - name: Review PostgreSQL logs for errors
+      ansible.builtin.shell: |
+        tail -100 /var/log/postgresql/postgresql.log | grep -i error
+        
+    - name: Check database disk usage
+      ansible.builtin.shell: |
+        du -sh /var/lib/postgresql/data/
+        
+    - name: Verify backup existence
+      ansible.builtin.shell: |
+        ls -la /backups/postgres/ | find . -name "*.sql" -mtime -1
+        
+    - name: Test database connectivity
+      ansible.builtin.shell: |
+        pg_isready -h localhost -p 5432
+        
+    - name: Check for long-running queries
+      ansible.builtin.shell: |
+        sudo -u postgres psql -c "SELECT pid, now() - pg_stat_activity.query_start AS duration, query FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';"
