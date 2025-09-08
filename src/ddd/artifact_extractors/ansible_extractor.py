@@ -295,20 +295,20 @@ class AnsibleModuleExtractor(InfrastructureExtractor):
             except yaml.YAMLError:
                 return None
         return None
-    
+
     def generate_maintenance_scenarios(self, doc):
         """Generate Ansible-specific maintenance scenarios"""
         from ddd.artifact_extractors.base import MaintenanceScenario
-        
+
         scenarios = []
-        
+
         # Check if we have AWS-related errors
-        has_aws_errors = any(
-            err.error_type == "aws_error" for err in doc.error_patterns
-        )
-        
+        has_aws_errors = any(err.error_type == "aws_error" for err in doc.error_patterns)
+
         # If we have AWS errors but no permissions, still create AWS scenario
-        if has_aws_errors and not any(s.name == "aws_troubleshooting" for s in doc.maintenance_scenarios):
+        if has_aws_errors and not any(
+            s.name == "aws_troubleshooting" for s in doc.maintenance_scenarios
+        ):
             scenarios.append(
                 MaintenanceScenario(
                     name="aws_troubleshooting",
@@ -332,6 +332,6 @@ class AnsibleModuleExtractor(InfrastructureExtractor):
                     ],
                 )
             )
-        
+
         # Let base class generate default scenarios, then add ours
         return scenarios

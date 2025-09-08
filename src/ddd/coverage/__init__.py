@@ -99,7 +99,7 @@ class DocumentationCoverage:
         # Fix: Return 0% for empty data instead of 100%
         if not data:
             return 0.0
-            
+
         if not spec.required_fields:
             # No fields required, but check if elements have actual content
             # If elements exist but are empty/None, should not score 100%
@@ -136,7 +136,7 @@ class DocumentationCoverage:
         # Fix: Return 0% for empty data instead of 100%
         if not data:
             return 0.0
-            
+
         # Simplified for MVP - check for key usefulness indicators
         usefulness_indicators = {
             "dependencies": ["failure_impact", "recovery_procedure"],

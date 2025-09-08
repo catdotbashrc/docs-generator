@@ -227,7 +227,7 @@ class TestDAYLIGHTSpec:
         deps_fields = deps_dim.required_fields["dependency"]
         assert "version" in deps_fields, "Dependencies should require version info"
         assert "failure_impact" in deps_fields, "Should document failure impact"
-        
+
         # Automation dimension should validate failure handling
         auto_dim = daylight_spec.get_dimension("automation")
         assert auto_dim is not None
@@ -235,30 +235,31 @@ class TestDAYLIGHTSpec:
             script_fields = auto_dim.required_fields["script"]
             assert "failure_handling" in script_fields, "Scripts need failure handling"
             assert "purpose" in script_fields, "Scripts need documented purpose"
-        
+
         # Lifecycle dimension should include rollback procedures
         lifecycle_dim = daylight_spec.get_dimension("lifecycle")
         assert lifecycle_dim is not None
         # Rollback is critical for lifecycle management
-        assert lifecycle_dim.minimum_coverage >= 0.85, \
-            "Lifecycle should have high coverage requirement"
-    
+        assert (
+            lifecycle_dim.minimum_coverage >= 0.85
+        ), "Lifecycle should have high coverage requirement"
+
     def test_dimension_weights_reflect_importance(self, daylight_spec):
         """Test that dimension weights appropriately reflect their importance."""
         # Critical dimensions should have higher weights
         deps_weight = daylight_spec.dimensions["dependencies"].weight
         integration_weight = daylight_spec.dimensions["integration"].weight
         testing_weight = daylight_spec.dimensions["testing"].weight
-        
+
         # Dependencies and integration are critical
         assert deps_weight >= 0.15, "Dependencies should have significant weight"
         assert integration_weight >= 0.15, "Integration should have significant weight"
         assert testing_weight >= 0.15, "Testing should have significant weight"
-        
+
         # Less critical dimensions should have lower weights
         yearbook_weight = daylight_spec.dimensions["yearbook"].weight
         assert yearbook_weight <= 0.10, "Yearbook is less critical"
-    
+
     def test_required_fields_completeness(self, daylight_spec):
         """Test that required fields cover essential documentation needs."""
         # Check dependencies dimension has all critical fields
@@ -268,7 +269,7 @@ class TestDAYLIGHTSpec:
             essential_fields = ["name", "version", "purpose", "failure_impact"]
             for field in essential_fields:
                 assert field in fields, f"Dependencies should require {field}"
-        
+
         # Check automation dimension
         auto_dim = daylight_spec.get_dimension("automation")
         if "script" in auto_dim.required_fields:
@@ -276,19 +277,21 @@ class TestDAYLIGHTSpec:
             essential_fields = ["command", "purpose", "when_to_run", "failure_handling"]
             for field in essential_fields:
                 assert field in fields, f"Automation scripts should require {field}"
-    
+
     def test_minimum_coverage_thresholds(self, daylight_spec):
         """Test that minimum coverage thresholds are appropriate."""
         for dim_name, dim_spec in daylight_spec.dimensions.items():
             # All dimensions should have reasonable thresholds
-            assert 0.7 <= dim_spec.minimum_coverage <= 1.0, \
-                f"{dim_name} threshold should be between 70% and 100%"
-            
+            assert (
+                0.7 <= dim_spec.minimum_coverage <= 1.0
+            ), f"{dim_name} threshold should be between 70% and 100%"
+
             # Critical dimensions should have higher thresholds
             if dim_name in ["dependencies", "integration", "governance"]:
-                assert dim_spec.minimum_coverage >= 0.90, \
-                    f"{dim_name} should have high threshold (>=90%)"
-    
+                assert (
+                    dim_spec.minimum_coverage >= 0.90
+                ), f"{dim_name} should have high threshold (>=90%)"
+
     def test_dimension_validation_with_empty_data(self):
         """Test dimension validation with empty data."""
         spec = DimensionSpec(
@@ -296,22 +299,22 @@ class TestDAYLIGHTSpec:
             required_elements=["element1", "element2"],
             required_fields={"item": ["field1", "field2"]},
             minimum_coverage=0.85,
-            weight=0.1
+            weight=0.1,
         )
-        
+
         # Test with completely empty data
         coverage, missing = spec.validate({})
         assert coverage == 0.0, "Empty data should have 0% coverage"
         assert "element1" in missing
         assert "element2" in missing
-        
+
         # Test with partial data
         partial_data = {"element1": "value1"}
         coverage, missing = spec.validate(partial_data)
         assert 0 < coverage < 1.0, "Partial data should have partial coverage"
         assert "element2" in missing
         assert "element1" not in missing
-    
+
     def test_dimension_validation_with_null_values(self):
         """Test that null/empty values are handled correctly."""
         spec = DimensionSpec(
@@ -319,38 +322,37 @@ class TestDAYLIGHTSpec:
             required_elements=["element1"],
             required_fields={},
             minimum_coverage=0.85,
-            weight=0.1
+            weight=0.1,
         )
-        
+
         # None values should not count as present
         data_with_none = {"element1": None}
         coverage, missing = spec.validate(data_with_none)
         # This reveals the bug: None is counted as present
         # TODO: Fix validation to check for truthy values
         assert coverage == 1.0, "Bug: None values counted as present"
-        
+
         # Empty strings should not count as present
         data_with_empty = {"element1": ""}
         coverage, missing = spec.validate(data_with_empty)
         # This also reveals the bug
         assert coverage == 1.0, "Bug: Empty strings counted as present"
-    
+
     def test_language_aware_dimension_specs(self):
         """Test that specs can be language-aware (future enhancement)."""
         # This test documents the need for language-aware specs
         # Currently, all projects are evaluated with same requirements
-        
+
         # Ideally, we should be able to do:
         # python_spec = DAYLIGHTSpec(project_type="python")
         # js_spec = DAYLIGHTSpec(project_type="javascript")
-        
+
         # And have different required elements:
         # python_deps = python_spec.dimensions["dependencies"].required_elements
         # assert "python_version" in python_deps
         # assert "node_version" not in python_deps
-        
+
         # For now, document this as a needed enhancement
         spec = DAYLIGHTSpec()
         deps = spec.dimensions["dependencies"].required_elements
-        assert "node_version" in deps, \
-            "TODO: Make specs language-aware to avoid false negatives"
+        assert "node_version" in deps, "TODO: Make specs language-aware to avoid false negatives"

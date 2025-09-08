@@ -13,7 +13,7 @@ from ddd.extractors.ansible_advanced import AdvancedAnsibleExtractor
 
 class TestErrorPatternRequirements:
     """Define how error patterns must be detected for maintenance."""
-    
+
     def test_extract_explicit_error_messages(self):
         """Must extract all module.fail_json() calls."""
         content = """
@@ -33,22 +33,22 @@ def main():
 """
         extractor = AdvancedAnsibleExtractor()
         errors = extractor.extract_error_patterns(content)
-        
+
         assert len(errors) >= 3
-        
+
         # Find specific error patterns
-        path_not_exist = next(e for e in errors if 'Path does not exist' in e.message)
-        assert path_not_exist.condition == 'not os.path.exists(path)'
-        assert path_not_exist.recovery_hint == 'Ensure the path exists before running the module'
-        
-        not_writable = next(e for e in errors if 'not writable' in e.message)
-        assert not_writable.condition == 'not os.access(path, os.W_OK)'
-        assert not_writable.recovery_hint == 'Check file permissions and ownership'
-        
-        operation_failed = next(e for e in errors if 'Operation failed' in e.message)
+        path_not_exist = next(e for e in errors if "Path does not exist" in e.message)
+        assert path_not_exist.condition == "not os.path.exists(path)"
+        assert path_not_exist.recovery_hint == "Ensure the path exists before running the module"
+
+        not_writable = next(e for e in errors if "not writable" in e.message)
+        assert not_writable.condition == "not os.access(path, os.W_OK)"
+        assert not_writable.recovery_hint == "Check file permissions and ownership"
+
+        operation_failed = next(e for e in errors if "Operation failed" in e.message)
         assert operation_failed.includes_traceback is True
-        assert operation_failed.error_type == 'exception'
-    
+        assert operation_failed.error_type == "exception"
+
     def test_extract_validation_errors(self):
         """Must identify parameter validation patterns."""
         content = """
@@ -79,17 +79,17 @@ def main():
 """
         extractor = AdvancedAnsibleExtractor()
         errors = extractor.extract_error_patterns(content)
-        validations = [e for e in errors if e.type == 'validation']
-        
+        validations = [e for e in errors if e.type == "validation"]
+
         assert len(validations) >= 3
-        
+
         # Should extract parameter constraints
         constraints = extractor.extract_parameter_constraints(content)
-        assert constraints['state']['choices'] == ['present', 'absent']
-        assert constraints['path']['required'] is True
-        assert 'required_if' in constraints
-        assert 'mutually_exclusive' in constraints
-    
+        assert constraints["state"]["choices"] == ["present", "absent"]
+        assert constraints["path"]["required"] is True
+        assert "required_if" in constraints
+        assert "mutually_exclusive" in constraints
+
     def test_extract_exception_handling(self):
         """Must detect try/except patterns for error scenarios."""
         content = """
@@ -114,24 +114,24 @@ except BotoCoreError as e:
 """
         extractor = AdvancedAnsibleExtractor()
         errors = extractor.extract_error_patterns(content)
-        exception_handlers = [e for e in errors if e.type == 'exception']
-        
+        exception_handlers = [e for e in errors if e.type == "exception"]
+
         # Should categorize different exception types
-        import_error = next(e for e in exception_handlers if e.exception_type == 'ImportError')
-        assert 'boto3 is required' in import_error.message
-        assert import_error.recovery_hint == 'Install boto3: pip install boto3'
-        
-        client_errors = [e for e in exception_handlers if e.exception_type == 'ClientError']
+        import_error = next(e for e in exception_handlers if e.exception_type == "ImportError")
+        assert "boto3 is required" in import_error.message
+        assert import_error.recovery_hint == "Install boto3: pip install boto3"
+
+        client_errors = [e for e in exception_handlers if e.exception_type == "ClientError"]
         assert len(client_errors) >= 3  # NotFound, Unauthorized, generic
-        
+
         # Should extract error codes
-        not_found = next(e for e in client_errors if 'InvalidInstanceID.NotFound' in e.error_code)
-        assert 'not found' in not_found.message.lower()
-        
-        unauthorized = next(e for e in client_errors if 'UnauthorizedOperation' in e.error_code)
-        assert 'permissions' in unauthorized.message.lower()
-        assert unauthorized.recovery_hint == 'Check IAM permissions for ec2:DescribeInstances'
-    
+        not_found = next(e for e in client_errors if "InvalidInstanceID.NotFound" in e.error_code)
+        assert "not found" in not_found.message.lower()
+
+        unauthorized = next(e for e in client_errors if "UnauthorizedOperation" in e.error_code)
+        assert "permissions" in unauthorized.message.lower()
+        assert unauthorized.recovery_hint == "Check IAM permissions for ec2:DescribeInstances"
+
     def test_extract_retry_patterns(self):
         """Must detect retry and backoff patterns."""
         content = """
@@ -154,20 +154,20 @@ for attempt in range(max_retries):
 """
         extractor = AdvancedAnsibleExtractor()
         errors = extractor.extract_error_patterns(content)
-        
+
         # Should detect retry decorators
         retry_patterns = extractor.extract_retry_patterns(content)
-        assert any('AWSRetry.jittered_backoff' in p for p in retry_patterns)
-        
+        assert any("AWSRetry.jittered_backoff" in p for p in retry_patterns)
+
         # Should detect manual retry loops
-        assert any('max_retries' in p for p in retry_patterns)
-        
+        assert any("max_retries" in p for p in retry_patterns)
+
         # Should extract retry configuration
         retry_config = extractor.extract_retry_configuration(content)
-        assert retry_config['max_retries'] == 3
-        assert retry_config['backoff_strategy'] == 'exponential'
-        assert retry_config['retriable_errors'] == ['TemporaryError']
-    
+        assert retry_config["max_retries"] == 3
+        assert retry_config["backoff_strategy"] == "exponential"
+        assert retry_config["retriable_errors"] == ["TemporaryError"]
+
     def test_extract_error_recovery_steps(self):
         """Must generate actionable recovery steps for each error."""
         content = """
@@ -184,17 +184,23 @@ except requests.ConnectionError:
 """
         extractor = AdvancedAnsibleExtractor()
         errors = extractor.extract_error_patterns(content)
-        
+
         # Each error should have recovery steps
-        git_error = next(e for e in errors if 'git' in e.message)
-        assert 'apt-get install git' in git_error.recovery_hint or 'yum install git' in git_error.recovery_hint
-        
-        config_error = next(e for e in errors if 'config.yml' in e.message)
-        assert 'Create configuration file at /etc/app/config.yml' in config_error.recovery_hint
-        
-        connection_error = next(e for e in errors if 'Cannot connect' in e.message)
-        assert any(hint in connection_error.recovery_hint for hint in [
-            'Check network connectivity',
-            'Verify API endpoint',
-            'Check firewall rules'
-        ])
+        git_error = next(e for e in errors if "git" in e.message)
+        assert (
+            "apt-get install git" in git_error.recovery_hint
+            or "yum install git" in git_error.recovery_hint
+        )
+
+        config_error = next(e for e in errors if "config.yml" in e.message)
+        assert "Create configuration file at /etc/app/config.yml" in config_error.recovery_hint
+
+        connection_error = next(e for e in errors if "Cannot connect" in e.message)
+        assert any(
+            hint in connection_error.recovery_hint
+            for hint in [
+                "Check network connectivity",
+                "Verify API endpoint",
+                "Check firewall rules",
+            ]
+        )

@@ -200,18 +200,18 @@ dependencies = []
 
 class TestLanguageAwareExtraction:
     """Test language-aware extraction that doesn't penalize for missing irrelevant fields"""
-    
+
     @pytest.fixture
     def extractor(self):
         """Create a DependencyExtractor instance"""
         return DependencyExtractor()
-    
+
     @pytest.fixture
     def temp_project_dir(self):
         """Create a temporary project directory"""
         with tempfile.TemporaryDirectory() as tmpdir:
             yield Path(tmpdir)
-    
+
     def test_python_project_not_penalized_for_node_version(self, extractor, temp_project_dir):
         """Python projects should not be penalized for missing node_version."""
         # Create a Python-only project
@@ -222,120 +222,114 @@ cryptography
 packaging
 resolvelib>=0.5.3,<2.0.0
 """
-        
+
         requirements_file = temp_project_dir / "requirements.txt"
         requirements_file.write_text(requirements_content)
-        
+
         pyproject_content = """
 [project]
 requires-python = ">=3.12"
 """
         pyproject_file = temp_project_dir / "pyproject.toml"
         pyproject_file.write_text(pyproject_content)
-        
+
         # Extract dependencies
         result = extractor.extract(str(temp_project_dir))
-        
+
         # Verify Python-specific fields are present
         assert result["python_version"] == ">=3.12"
         assert result["package_manager"] == "pip"
         assert result["lock_file"] == "requirements.txt"
-        
+
         # node_version should be None, not required for Python projects
         assert result["node_version"] is None
-        
+
         # TODO: When language-aware specs are implemented, this should pass:
         # from ddd.coverage import DocumentationCoverage
         # coverage = DocumentationCoverage()
         # doc_result = coverage.measure({"dependencies": result})
         # assert doc_result.dimension_scores["dependencies"] > 0.8, \
         #     "Python project should not be penalized for missing node_version"
-    
+
     def test_node_project_not_penalized_for_python_version(self, extractor, temp_project_dir):
         """Node.js projects should not be penalized for missing python_version."""
         # Create a Node.js-only project
         package_json = {
             "name": "node-project",
             "version": "1.0.0",
-            "dependencies": {
-                "express": "^4.18.0",
-                "lodash": "^4.17.21",
-                "axios": "^1.5.0"
-            },
-            "engines": {
-                "node": ">=18.0.0"
-            }
+            "dependencies": {"express": "^4.18.0", "lodash": "^4.17.21", "axios": "^1.5.0"},
+            "engines": {"node": ">=18.0.0"},
         }
-        
+
         package_file = temp_project_dir / "package.json"
         package_file.write_text(json.dumps(package_json, indent=2))
-        
+
         # Create package-lock.json
         (temp_project_dir / "package-lock.json").touch()
-        
+
         # Extract dependencies
         result = extractor.extract(str(temp_project_dir))
-        
+
         # Verify Node.js-specific fields are present
         assert result["node_version"] == ">=18.0.0"
         assert result["package_manager"] == "npm"
         assert result["lock_file"] == "package-lock.json"
-        
+
         # python_version should be None, not required for Node projects
         assert result["python_version"] is None
-        
+
         # TODO: When language-aware specs are implemented, this should pass:
         # from ddd.coverage import DocumentationCoverage
         # coverage = DocumentationCoverage()
         # doc_result = coverage.measure({"dependencies": result})
         # assert doc_result.dimension_scores["dependencies"] > 0.8, \
         #     "Node.js project should not be penalized for missing python_version"
-    
+
     def test_detect_project_language_context(self, extractor, temp_project_dir):
         """Extractor should detect the primary language context of a project."""
         # Test Python project detection
         requirements_file = temp_project_dir / "requirements.txt"
         with open(requirements_file, "w") as f:
             f.write("django==4.2.0\n")
-        
+
         result = extractor.extract(str(temp_project_dir))
-        
+
         # TODO: Add language detection to extractor
         # assert result.get("detected_language") == "python"
         # assert result.get("language_context") == {"python": True, "node": False}
-        
+
         # For now, verify Python indicators
         assert result["package_manager"] == "pip"
         assert result["python_version"] is None  # No explicit version, but pip detected
-    
+
     def test_mixed_language_project_extracts_all(self, extractor, temp_project_dir):
         """Mixed-language projects should extract all relevant dependencies."""
         # Create both package.json and requirements.txt
         package_json = {
             "name": "mixed-project",
             "dependencies": {"react": "^18.0.0"},
-            "engines": {"node": ">=16.0.0"}
+            "engines": {"node": ">=16.0.0"},
         }
         (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
-        
+
         (temp_project_dir / "requirements.txt").write_text("flask==2.3.0\ncelery==5.3.0\n")
-        
+
         (temp_project_dir / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.9"\n')
-        
+
         result = extractor.extract(str(temp_project_dir))
-        
+
         # Should extract from both ecosystems
         assert "react" in result["runtime_dependencies"]
         assert "flask" in result["runtime_dependencies"]
         assert "celery" in result["runtime_dependencies"]
-        
+
         # Should have both version requirements
         assert result["node_version"] == ">=16.0.0"
         assert result["python_version"] == ">=3.9"
-        
+
         # TODO: Mixed projects need special handling in coverage calculation
         # Should not penalize for having both, should validate each independently
-    
+
     def test_extractor_handles_missing_optional_fields(self, extractor, temp_project_dir):
         """Extractors should gracefully handle missing optional fields."""
         # Minimal package.json without engines or version constraints
@@ -343,28 +337,28 @@ requires-python = ">=3.12"
             "name": "minimal-project",
             "dependencies": {
                 "express": "*",  # No version constraint
-                "lodash": ""     # Empty version string
-            }
+                "lodash": "",  # Empty version string
+            },
         }
-        
+
         (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
-        
+
         result = extractor.extract(str(temp_project_dir))
-        
+
         # Should extract dependencies even without version constraints
         assert "express" in result["runtime_dependencies"]
         assert "lodash" in result["runtime_dependencies"]
-        
+
         # Version constraints should be captured as-is or normalized
         assert result["runtime_dependencies"]["express"]["version"] == "*"
         assert result["runtime_dependencies"]["lodash"]["version"] == ""
-        
+
         # Missing engines field should not cause failure
         assert result["node_version"] is None
-        
+
         # TODO: Coverage calculation should handle missing version constraints
         # as a quality issue, not a completeness issue
-    
+
     def test_language_specific_dependency_purposes(self, extractor):
         """Test that package purpose inference is language-aware."""
         # Python-specific packages
@@ -374,7 +368,7 @@ requires-python = ">=3.12"
         assert extractor._infer_purpose("numpy") == "Numerical computing"
         assert extractor._infer_purpose("pandas") == "Data analysis"
         assert extractor._infer_purpose("sqlalchemy") == "Database ORM"
-        
+
         # Node.js-specific packages
         assert extractor._infer_purpose("express") == "Web server framework"
         assert extractor._infer_purpose("react") == "UI framework"
@@ -382,13 +376,13 @@ requires-python = ">=3.12"
         assert extractor._infer_purpose("jest") == "Testing framework"
         assert extractor._infer_purpose("mocha") == "Testing framework"
         assert extractor._infer_purpose("webpack") == "Build tool"
-        
+
         # Infrastructure/DevOps packages (cross-language)
         assert extractor._infer_purpose("ansible") == "Infrastructure automation"
         assert extractor._infer_purpose("terraform") == "Infrastructure as Code"
         assert extractor._infer_purpose("docker") == "Containerization"
         assert extractor._infer_purpose("kubernetes") == "Container orchestration"
-    
+
     def test_extractor_version_constraint_normalization(self, extractor, temp_project_dir):
         """Test that version constraints are normalized for consistency."""
         # Create package.json with various version formats
@@ -400,14 +394,14 @@ requires-python = ">=3.12"
                 "range": ">=4.0.0 <5.0.0",
                 "wildcard": "*",
                 "latest": "latest",
-                "empty": ""
+                "empty": "",
             }
         }
-        
+
         (temp_project_dir / "package.json").write_text(json.dumps(package_json, indent=2))
-        
+
         result = extractor.extract(str(temp_project_dir))
-        
+
         # Verify all version formats are captured
         deps = result["runtime_dependencies"]
         assert deps["exact"]["version"] == "1.2.3"
@@ -417,28 +411,28 @@ requires-python = ">=3.12"
         assert deps["wildcard"]["version"] == "*"
         assert deps["latest"]["version"] == "latest"
         assert deps["empty"]["version"] == ""
-        
+
         # TODO: Add version constraint quality scoring
         # Exact versions and ranges should score higher than wildcards
 
 
 class TestExtractorExtensibility:
     """Test extractor extensibility for future language support"""
-    
+
     def test_extractor_plugin_interface(self):
         """Test that new extractors can be added following the plugin pattern."""
         # TODO: When additional extractors are added, verify they follow the pattern
         from ddd.extractors import DependencyExtractor
-        
+
         # Verify base interface exists
-        assert hasattr(DependencyExtractor, 'extract')
-        
+        assert hasattr(DependencyExtractor, "extract")
+
         # Future extractors should implement:
         # - extract(project_path) -> dict
         # - _infer_purpose(package_name) -> str
         # - _detect_package_manager(project_path) -> str
         # - _parse_version_constraint(constraint) -> dict
-    
+
     def test_future_ruby_extractor_requirements(self):
         """Document requirements for future Ruby extractor."""
         # TODO: Ruby extractor should handle:
@@ -448,7 +442,7 @@ class TestExtractorExtensibility:
         # - Bundler as package manager
         # - Gem purpose inference (rails, rspec, etc.)
         pass
-    
+
     def test_future_go_extractor_requirements(self):
         """Document requirements for future Go extractor."""
         # TODO: Go extractor should handle:
@@ -458,7 +452,7 @@ class TestExtractorExtensibility:
         # - Module dependencies with versions
         # - Purpose inference for common Go packages
         pass
-    
+
     def test_future_rust_extractor_requirements(self):
         """Document requirements for future Rust extractor."""
         # TODO: Rust extractor should handle:
@@ -468,7 +462,7 @@ class TestExtractorExtensibility:
         # - Crate dependencies with versions
         # - Purpose inference for common crates
         pass
-    
+
     def test_future_java_extractor_requirements(self):
         """Document requirements for future Java extractor."""
         # TODO: Java extractor should handle:
@@ -478,7 +472,7 @@ class TestExtractorExtensibility:
         # - Dependency management (Maven Central, etc.)
         # - Purpose inference for common Java libraries
         pass
-    
+
     def test_language_detection_strategy(self):
         """Test strategy for detecting project language."""
         # TODO: Implement language detection based on:

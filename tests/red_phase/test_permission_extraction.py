@@ -13,7 +13,7 @@ from ddd.extractors.ansible_advanced import AdvancedAnsibleExtractor
 
 class TestPermissionExtractionRequirements:
     """Define how AWS IAM permissions must be detected."""
-    
+
     def test_extract_boto3_client_permissions(self):
         """Must detect all boto3 client method calls and map to IAM."""
         content = """
@@ -29,15 +29,15 @@ def main():
 """
         extractor = AdvancedAnsibleExtractor()
         permissions = extractor.extract_permissions(content)
-        
+
         # Must find all permissions
-        assert 'ec2:DescribeInstances' in permissions
-        assert 'ec2:TerminateInstances' in permissions
-        assert 's3:ListBuckets' in permissions
-        
+        assert "ec2:DescribeInstances" in permissions
+        assert "ec2:TerminateInstances" in permissions
+        assert "s3:ListBuckets" in permissions
+
         # Must not have duplicates
         assert len(permissions) == len(set(permissions))
-    
+
     def test_extract_boto3_resource_permissions(self):
         """Must handle boto3 resource API patterns."""
         content = """
@@ -56,11 +56,11 @@ def main():
 """
         extractor = AdvancedAnsibleExtractor()
         permissions = extractor.extract_permissions(content)
-        
-        assert 's3:PutObject' in permissions
-        assert 'dynamodb:PutItem' in permissions
-        assert 'dynamodb:GetItem' in permissions
-    
+
+        assert "s3:PutObject" in permissions
+        assert "dynamodb:PutItem" in permissions
+        assert "dynamodb:GetItem" in permissions
+
     def test_extract_service_specific_patterns(self):
         """Must handle service-specific permission patterns."""
         test_cases = [
@@ -72,14 +72,14 @@ def main():
             ("rds.create_db_instance()", ["rds:CreateDBInstance"]),
             ("ecs.run_task(taskDefinition='task')", ["ecs:RunTask"]),
         ]
-        
+
         extractor = AdvancedAnsibleExtractor()
-        
+
         for code, expected_permissions in test_cases:
             perms = extractor.extract_permissions(code)
             for expected_perm in expected_permissions:
                 assert expected_perm in perms, f"Missing {expected_perm} from: {code}"
-    
+
     def test_extract_complex_permission_chains(self):
         """Must detect permission dependencies and chains."""
         content = """
@@ -93,18 +93,18 @@ s3.put_object_acl(Bucket='test', Key='file', ACL='public-read')
 """
         extractor = AdvancedAnsibleExtractor()
         permissions = extractor.extract_permissions(content)
-        
+
         # EC2 instance creation chain
-        assert 'ec2:RunInstances' in permissions
-        assert 'ec2:CreateTags' in permissions
-        
-        # S3 upload chain  
-        assert 's3:PutObject' in permissions
-        assert 's3:PutObjectAcl' in permissions
-        
+        assert "ec2:RunInstances" in permissions
+        assert "ec2:CreateTags" in permissions
+
+        # S3 upload chain
+        assert "s3:PutObject" in permissions
+        assert "s3:PutObjectAcl" in permissions
+
         # Should detect encryption permissions
         assert extractor.detects_encryption_requirement(content) is True
-    
+
     def test_extract_assume_role_permissions(self):
         """Must detect STS assume role patterns."""
         content = """
@@ -116,13 +116,13 @@ assumed_role = sts.assume_role(
 """
         extractor = AdvancedAnsibleExtractor()
         permissions = extractor.extract_permissions(content)
-        
-        assert 'sts:AssumeRole' in permissions
-        
+
+        assert "sts:AssumeRole" in permissions
+
         # Should also extract the role ARN for documentation
         role_requirements = extractor.extract_role_requirements(content)
-        assert 'arn:aws:iam::123456789012:role/MyRole' in role_requirements
-    
+        assert "arn:aws:iam::123456789012:role/MyRole" in role_requirements
+
     def test_extract_wildcard_permissions(self):
         """Must detect when wildcard permissions might be needed."""
         content = """
@@ -132,14 +132,14 @@ s3.list_objects_v2(Bucket='bucket', Prefix='path/')  # Needs path/*
 """
         extractor = AdvancedAnsibleExtractor()
         permission_details = extractor.extract_permission_details(content)
-        
+
         # Should indicate resource constraints
-        ec2_perm = next(p for p in permission_details if p['action'] == 'ec2:DescribeInstances')
-        assert ec2_perm['resource_constraint'] == '*' or ec2_perm['resource_constraint'] is None
-        
-        s3_perm = next(p for p in permission_details if p['action'] == 's3:ListBucket')
-        assert 'path/*' in s3_perm.get('condition', '') or s3_perm.get('requires_prefix') is True
-    
+        ec2_perm = next(p for p in permission_details if p["action"] == "ec2:DescribeInstances")
+        assert ec2_perm["resource_constraint"] == "*" or ec2_perm["resource_constraint"] is None
+
+        s3_perm = next(p for p in permission_details if p["action"] == "s3:ListBucket")
+        assert "path/*" in s3_perm.get("condition", "") or s3_perm.get("requires_prefix") is True
+
     def test_permission_extraction_with_try_except(self):
         """Must extract permissions even when wrapped in error handling."""
         content = """
@@ -153,10 +153,10 @@ except ClientError as e:
 """
         extractor = AdvancedAnsibleExtractor()
         permissions = extractor.extract_permissions(content)
-        
-        assert 'ec2:DescribeInstances' in permissions
-        assert 'ec2:StopInstances' in permissions
-        
+
+        assert "ec2:DescribeInstances" in permissions
+        assert "ec2:StopInstances" in permissions
+
         # Should also extract permission error patterns
         error_hints = extractor.extract_permission_errors(content)
-        assert any('UnauthorizedOperation' in hint for hint in error_hints)
+        assert any("UnauthorizedOperation" in hint for hint in error_hints)

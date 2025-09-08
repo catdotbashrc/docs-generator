@@ -30,7 +30,10 @@
       "mcp__serena__think_about_collected_information",
       "mcp__serena__create_text_file",
       "mcp__serena__insert_before_symbol",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

@@ -92,6 +92,7 @@ class TestCLICommands:
         """Test assert-coverage command when passing"""
         # Create mock with spec to avoid 'assert' prefix issue
         from ddd.coverage import DocumentationCoverage
+
         mock_coverage = MagicMock(spec=DocumentationCoverage)
         mock_coverage.assert_coverage.return_value = None  # No exception means pass
         mock_coverage_class.return_value = mock_coverage
@@ -106,6 +107,7 @@ class TestCLICommands:
         """Test assert-coverage command when failing"""
         # Create mock with spec to avoid 'assert' prefix issue
         from ddd.coverage import DocumentationCoverage
+
         mock_coverage = MagicMock(spec=DocumentationCoverage)
         mock_coverage.assert_coverage.side_effect = AssertionError(
             "Documentation coverage 0.4 below minimum 0.85"

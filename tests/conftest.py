@@ -21,10 +21,10 @@ from ddd.config_extractors import ConfigCoverageCalculator
 from ddd.extractors import DependencyExtractor
 from ddd.specs import DAYLIGHTSpec, DimensionSpec
 
-
 # ===========================
 # Test Configuration
 # ===========================
+
 
 @pytest.fixture(scope="session")
 def test_data_dir() -> Path:
@@ -46,6 +46,7 @@ def baseline_ansible_path() -> Path:
 # CLI Testing Fixtures
 # ===========================
 
+
 @pytest.fixture
 def runner() -> CliRunner:
     """Create a Click CLI test runner."""
@@ -57,17 +58,18 @@ def temp_project(tmp_path) -> Path:
     """Create a temporary project directory with basic structure."""
     project_dir = tmp_path / "test_project"
     project_dir.mkdir()
-    
+
     # Create basic project files
-    (project_dir / "package.json").write_text(json.dumps({
-        "name": "test-project",
-        "version": "1.0.0",
-        "dependencies": {
-            "express": "^4.18.0"
-        }
-    }, indent=2))
-    
-    (project_dir / "pyproject.toml").write_text(textwrap.dedent("""
+    (project_dir / "package.json").write_text(
+        json.dumps(
+            {"name": "test-project", "version": "1.0.0", "dependencies": {"express": "^4.18.0"}},
+            indent=2,
+        )
+    )
+
+    (project_dir / "pyproject.toml").write_text(
+        textwrap.dedent(
+            """
         [project]
         name = "test-project"
         version = "0.1.0"
@@ -75,16 +77,19 @@ def temp_project(tmp_path) -> Path:
             "pytest>=7.0",
             "click>=8.0"
         ]
-    """))
-    
+    """
+        )
+    )
+
     (project_dir / "README.md").write_text("# Test Project\nA sample project for testing.")
-    
+
     return project_dir
 
 
 # ===========================
 # Coverage Testing Fixtures
 # ===========================
+
 
 @pytest.fixture
 def coverage_calculator() -> DocumentationCoverage:
@@ -109,14 +114,14 @@ def sample_extracted_docs() -> Dict[str, Any]:
                     "version": ">=7.0",
                     "purpose": "Testing framework",
                     "failure_impact": "Tests cannot run",
-                    "recovery_procedure": "Install with: pip install pytest>=7.0"
+                    "recovery_procedure": "Install with: pip install pytest>=7.0",
                 },
                 "click": {
                     "name": "click",
                     "version": ">=8.0",
                     "purpose": "CLI framework",
                     "failure_impact": "CLI commands unavailable",
-                }
+                },
             },
             "python_version": ">=3.11",
             "package_manager": "pip",
@@ -126,12 +131,12 @@ def sample_extracted_docs() -> Dict[str, Any]:
             "ci_cd_pipelines": ["GitHub Actions"],
             "deployment_scripts": ["deploy.sh"],
             "purpose": "Automated testing and deployment",
-            "failure_handling": "Rollback on test failure"
+            "failure_handling": "Rollback on test failure",
         },
         "yearbook": {
             "team_members": ["John Doe", "Jane Smith"],
-            "changelog": "Version 1.0.0 - Initial release"
-        }
+            "changelog": "Version 1.0.0 - Initial release",
+        },
     }
 
 
@@ -146,13 +151,14 @@ def empty_extracted_docs() -> Dict[str, Any]:
         "integration": {},
         "governance": {},
         "health": {},
-        "testing": {}
+        "testing": {},
     }
 
 
 # ===========================
 # Extractor Testing Fixtures
 # ===========================
+
 
 @pytest.fixture
 def dependency_extractor() -> DependencyExtractor:
@@ -182,10 +188,12 @@ def config_calculator() -> ConfigCoverageCalculator:
 # Ansible Module Fixtures
 # ===========================
 
+
 @pytest.fixture
 def sample_ansible_module() -> str:
     """Provide a minimal but complete Ansible module for testing."""
-    return textwrap.dedent('''
+    return textwrap.dedent(
+        '''
         DOCUMENTATION = """
         ---
         module: sample
@@ -285,13 +293,15 @@ def sample_ansible_module() -> str:
         
         if __name__ == '__main__':
             main()
-    ''')
+    '''
+    )
 
 
 @pytest.fixture
 def sample_ansible_module_with_errors() -> str:
     """Ansible module with various error patterns for testing."""
-    return textwrap.dedent('''
+    return textwrap.dedent(
+        """
         from ansible.module_utils.basic import AnsibleModule
         
         def main():
@@ -321,36 +331,34 @@ def sample_ansible_module_with_errors() -> str:
                     if attempt == 2:
                         module.fail_json(msg="Failed after 3 retries")
                     time.sleep(1)
-    ''')
+    """
+    )
 
 
 # ===========================
 # Test Data Generators
 # ===========================
 
+
 class TestDataGenerator:
     """Generate realistic test data for different scenarios."""
-    
+
     @staticmethod
     def generate_ansible_module(
         name: str = "test_module",
         parameters: List[Dict[str, Any]] = None,
         states: List[str] = None,
-        aws_operations: List[str] = None
+        aws_operations: List[str] = None,
     ) -> str:
         """Generate a complete Ansible module with specified characteristics."""
         parameters = parameters or [
             {"name": "path", "type": "path", "required": True},
-            {"name": "state", "choices": states or ["present", "absent"]}
+            {"name": "state", "choices": states or ["present", "absent"]},
         ]
-        
+
         # Build DOCUMENTATION section
-        doc_yaml = {
-            "module": name,
-            "short_description": f"Test module {name}",
-            "options": {}
-        }
-        
+        doc_yaml = {"module": name, "short_description": f"Test module {name}", "options": {}}
+
         for param in parameters:
             doc_yaml["options"][param["name"]] = {
                 "description": f"Parameter {param['name']}",
@@ -358,18 +366,17 @@ class TestDataGenerator:
                 "required": param.get("required", False),
                 "choices": param.get("choices"),
             }
-        
+
         # Build module code
         aws_code = ""
         if aws_operations:
             aws_imports = "import boto3\n"
             aws_client = "    ec2 = boto3.client('ec2')\n"
-            aws_calls = "\n".join([
-                f"    ec2.{op}()" for op in aws_operations
-            ])
+            aws_calls = "\n".join([f"    ec2.{op}()" for op in aws_operations])
             aws_code = aws_imports + "\ndef main():\n" + aws_client + aws_calls
-        
-        return textwrap.dedent(f'''
+
+        return textwrap.dedent(
+            f'''
             DOCUMENTATION = """
             {yaml.dump(doc_yaml)}
             """
@@ -396,40 +403,29 @@ class TestDataGenerator:
             
             if __name__ == '__main__':
                 main()
-        ''')
-    
+        '''
+        )
+
     @staticmethod
     def generate_package_json(
-        name: str = "test-project",
-        dependencies: Dict[str, str] = None
+        name: str = "test-project", dependencies: Dict[str, str] = None
     ) -> str:
         """Generate a package.json file."""
-        deps = dependencies or {
-            "express": "^4.18.0",
-            "lodash": "^4.17.21"
-        }
-        return json.dumps({
-            "name": name,
-            "version": "1.0.0",
-            "dependencies": deps
-        }, indent=2)
-    
+        deps = dependencies or {"express": "^4.18.0", "lodash": "^4.17.21"}
+        return json.dumps({"name": name, "version": "1.0.0", "dependencies": deps}, indent=2)
+
     @staticmethod
-    def generate_pyproject_toml(
-        name: str = "test-project",
-        dependencies: List[str] = None
-    ) -> str:
+    def generate_pyproject_toml(name: str = "test-project", dependencies: List[str] = None) -> str:
         """Generate a pyproject.toml file."""
-        deps = dependencies or [
-            "pytest>=7.0",
-            "click>=8.0"
-        ]
-        return textwrap.dedent(f'''
+        deps = dependencies or ["pytest>=7.0", "click>=8.0"]
+        return textwrap.dedent(
+            f"""
             [project]
             name = "{name}"
             version = "0.1.0"
             dependencies = {json.dumps(deps)}
-        ''')
+        """
+        )
 
 
 @pytest.fixture
@@ -442,46 +438,48 @@ def test_data_generator() -> TestDataGenerator:
 # Custom Assertion Helpers
 # ===========================
 
+
 class AssertionHelpers:
     """Custom assertions for documentation testing."""
-    
+
     @staticmethod
     def assert_valid_permission(permission: str):
         """Assert that a permission follows AWS IAM format."""
-        assert ':' in permission, f"Permission {permission} missing service separator"
-        service, action = permission.split(':', 1)
+        assert ":" in permission, f"Permission {permission} missing service separator"
+        service, action = permission.split(":", 1)
         assert service.islower(), f"Service {service} should be lowercase"
         assert action[0].isupper(), f"Action {action} should start with uppercase"
-    
+
     @staticmethod
     def assert_maintenance_scenario(scenario: Dict[str, Any]):
         """Assert that a maintenance scenario is complete."""
-        required_fields = ['description', 'when', 'symptoms', 'resolution']
+        required_fields = ["description", "when", "symptoms", "resolution"]
         for field in required_fields:
             assert field in scenario, f"Scenario missing required field: {field}"
             assert scenario[field], f"Scenario field {field} is empty"
-    
+
     @staticmethod
     def assert_coverage_valid(coverage: float, min_val: float = 0.0, max_val: float = 1.0):
         """Assert coverage is within valid range."""
-        assert min_val <= coverage <= max_val, \
-            f"Coverage {coverage} outside valid range [{min_val}, {max_val}]"
-    
+        assert (
+            min_val <= coverage <= max_val
+        ), f"Coverage {coverage} outside valid range [{min_val}, {max_val}]"
+
     @staticmethod
     def assert_dimension_complete(dimension_data: Dict[str, Any], spec: DimensionSpec):
         """Assert that dimension data meets specification requirements."""
         # Check required elements
         for element in spec.required_elements:
-            assert element in dimension_data, \
-                f"Missing required element: {element}"
-        
+            assert element in dimension_data, f"Missing required element: {element}"
+
         # Check required fields
         for element_type, fields in spec.required_fields.items():
             if element_type in dimension_data:
                 element_data = dimension_data[element_type]
                 for field in fields:
-                    assert field in element_data, \
-                        f"Missing required field {field} in {element_type}"
+                    assert (
+                        field in element_data
+                    ), f"Missing required field {field} in {element_type}"
 
 
 @pytest.fixture
@@ -494,22 +492,24 @@ def assertion_helpers() -> AssertionHelpers:
 # Mock Factory
 # ===========================
 
+
 @pytest.fixture
 def mock_factory():
     """Factory for creating properly configured mocks."""
+
     def create_mock(spec_class=None, **kwargs):
         """Create a MagicMock with optional spec and configuration."""
         if spec_class:
             mock = MagicMock(spec=spec_class)
         else:
             mock = MagicMock()
-        
+
         # Configure any additional attributes
         for key, value in kwargs.items():
             setattr(mock, key, value)
-        
+
         return mock
-    
+
     return create_mock
 
 
@@ -517,34 +517,28 @@ def mock_factory():
 # Pytest Marks
 # ===========================
 
+
 def pytest_configure(config):
     """Register custom pytest markers."""
-    config.addinivalue_line(
-        "markers", "critical: mark test as critical for MVP (must pass)"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
-    config.addinivalue_line(
-        "markers", "requires_baseline: mark test as requiring Ansible baseline"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as integration test"
-    )
-    config.addinivalue_line(
-        "markers", "unit: mark test as unit test"
-    )
+    config.addinivalue_line("markers", "critical: mark test as critical for MVP (must pass)")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "requires_baseline: mark test as requiring Ansible baseline")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "unit: mark test as unit test")
 
 
 # ===========================
 # Test Directory Fixtures
 # ===========================
 
+
 @pytest.fixture
 def temp_python_file(tmp_path) -> Path:
     """Create a temporary Python file for testing."""
     python_file = tmp_path / "test_module.py"
-    python_file.write_text(textwrap.dedent("""
+    python_file.write_text(
+        textwrap.dedent(
+            """
         def test_function():
             return "test"
         
@@ -553,7 +547,9 @@ def temp_python_file(tmp_path) -> Path:
                 pass
         
         TEST_CONSTANT = "constant"
-    """))
+    """
+        )
+    )
     return python_file
 
 
@@ -561,7 +557,9 @@ def temp_python_file(tmp_path) -> Path:
 def temp_javascript_file(tmp_path) -> Path:
     """Create a temporary JavaScript file for testing."""
     js_file = tmp_path / "test_module.js"
-    js_file.write_text(textwrap.dedent("""
+    js_file.write_text(
+        textwrap.dedent(
+            """
         function testFunction() {
             return "test";
         }
@@ -571,7 +569,9 @@ def temp_javascript_file(tmp_path) -> Path:
         }
         
         const TEST_CONSTANT = "constant";
-    """))
+    """
+        )
+    )
     return js_file
 
 
@@ -579,28 +579,30 @@ def temp_javascript_file(tmp_path) -> Path:
 # Performance Testing Fixtures
 # ===========================
 
+
 @pytest.fixture
 def performance_timer():
     """Context manager for timing operations."""
     import time
-    
+
     class PerformanceTimer:
         def __init__(self):
             self.start_time = None
             self.end_time = None
             self.elapsed = None
-        
+
         def __enter__(self):
             self.start_time = time.time()
             return self
-        
+
         def __exit__(self, exc_type, exc_val, exc_tb):
             self.end_time = time.time()
             self.elapsed = self.end_time - self.start_time
-        
+
         def assert_under(self, seconds: float):
             """Assert that elapsed time is under specified seconds."""
-            assert self.elapsed < seconds, \
-                f"Operation took {self.elapsed:.2f}s, expected < {seconds}s"
-    
+            assert (
+                self.elapsed < seconds
+            ), f"Operation took {self.elapsed:.2f}s, expected < {seconds}s"
+
     return PerformanceTimer()

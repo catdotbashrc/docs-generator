@@ -62,15 +62,32 @@ class ConfigurationExtractor:
     # Common patterns for different languages
     ENV_PATTERNS = {
         "python": [
+            # Environment variables
             (r'os\.environ\.get\([\'"](\w+)[\'"]', "env_var"),
             (r'os\.environ\[[\'"](\w+)[\'"]\]', "env_var"),
             (r'os\.getenv\([\'"](\w+)[\'"]', "env_var"),
+            # Django/Flask settings - capture name only
+            (r'^([A-Z][A-Z0-9_]+)\s*=\s*[\'"]', "constant"),
+            (r'^([A-Z][A-Z0-9_]+)\s*=\s*\d', "constant"),
+            (r'^([A-Z][A-Z0-9_]+)\s*=\s*(?:True|False|None)', "constant"),
+            (r'^([A-Z][A-Z0-9_]+)\s*=\s*\[', "constant"),
+            (r'^([A-Z][A-Z0-9_]+)\s*=\s*\{', "constant"),
+            # Config access patterns
             (r'config\[[\'"](\w+)[\'"]\]', "config_param"),
             (r"settings\.(\w+)", "config_param"),
+            (r"Config\.(\w+)", "config_param"),
         ],
         "javascript": [
+            # Process.env patterns
             (r"process\.env\.(\w+)", "env_var"),
             (r'process\.env\[[\'"](\w+)[\'"]\]', "env_var"),
+            # Config object patterns - capture name only
+            (r'const\s+([A-Z][A-Z0-9_]+)\s*=\s*[\'"]', "constant"),
+            (r'let\s+([A-Z][A-Z0-9_]+)\s*=\s*[\'"]', "constant"),
+            (r'^\s*(\w+):\s*[\'"]', "config_param"),
+            (r'^\s*(\w+):\s*\d', "config_param"),
+            (r'^\s*(\w+):\s*(?:true|false|null)', "config_param"),
+            # Config access
             (r'config\.get\([\'"]([^\'\"]+)[\'\"]\)', "config_param"),
             (r"import\.meta\.env\.(\w+)", "env_var"),  # Vite
         ],
@@ -78,6 +95,7 @@ class ConfigurationExtractor:
             (r"process\.env\.(\w+)", "env_var"),
             (r'process\.env\[[\'"](\w+)[\'"]\]', "env_var"),
             (r'ConfigService\.get\([\'"]([^\'"]+)[\'"]', "config_param"),  # NestJS
+            (r"import\.meta\.env\.(\w+)", "env_var"),
         ],
         "java": [
             (r'System\.getenv\("(\w+)"\)', "env_var"),
@@ -211,8 +229,11 @@ class ConfigurationExtractor:
                 lines = content.split("\n")
 
             for pattern, config_type in patterns:
-                for match in re.finditer(pattern, content):
-                    config_name = match.group(1)
+                # Use MULTILINE flag for patterns that start with ^
+                flags = re.MULTILINE if pattern.startswith('^') else 0
+                for match in re.finditer(pattern, content, flags):
+                    # Get the config name from the first capture group
+                    config_name = match.group(1) if match.groups() else match.group(0)
                     line_number = content[: match.start()].count("\n") + 1
 
                     # Get usage context (the line of code)
@@ -220,6 +241,9 @@ class ConfigurationExtractor:
                         usage_context = lines[line_number - 1].strip()
                     else:
                         usage_context = None
+
+                    # Get the value if there's a second capture group
+                    value = match.group(2) if len(match.groups()) > 1 else None
 
                     # Check if sensitive
                     is_sensitive = any(
@@ -233,6 +257,7 @@ class ConfigurationExtractor:
                             file_path=str(file_path),
                             line_number=line_number,
                             usage_context=usage_context,
+                            default_value=value if value and not is_sensitive else None,
                             is_sensitive=is_sensitive,
                             is_documented=False,  # Will check docs later
                         )
@@ -279,43 +304,45 @@ class ConfigurationExtractor:
             env_file = project_path / env_file_name
             if env_file.exists():
                 try:
+                    # Read all lines first for documentation checking
                     with open(env_file, "r") as f:
-                        for line_no, line in enumerate(f, 1):
-                            line = line.strip()
+                        all_lines = f.readlines()
+                    
+                    for line_no, line in enumerate(all_lines, 1):
+                        line = line.strip()
 
-                            # Skip comments and empty lines
-                            if not line or line.startswith("#"):
-                                continue
+                        # Skip comments and empty lines
+                        if not line or line.startswith("#"):
+                            continue
 
-                            # Parse KEY=VALUE format
-                            if "=" in line:
-                                key = line.split("=")[0].strip()
-                                value = line.split("=", 1)[1].strip()
+                        # Parse KEY=VALUE format
+                        if "=" in line:
+                            key = line.split("=")[0].strip()
+                            value = line.split("=", 1)[1].strip()
 
-                                # Check if it's documented (has comment above)
-                                is_documented = False
-                                if line_no > 1:
-                                    # Check if previous line was a comment
-                                    env_file.seek(0)
-                                    lines = env_file.readlines()
-                                    if line_no > 1 and lines[line_no - 2].strip().startswith("#"):
-                                        is_documented = True
+                            # Check if it's documented (has comment above)
+                            is_documented = False
+                            if line_no > 1:
+                                # Check if previous line was a comment
+                                prev_line = all_lines[line_no - 2].strip()
+                                if prev_line.startswith("#"):
+                                    is_documented = True
 
-                                is_sensitive = any(
-                                    pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
+                            is_sensitive = any(
+                                pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
+                            )
+
+                            configs.append(
+                                ConfigArtifact(
+                                    name=key,
+                                    type="env_var",
+                                    file_path=str(env_file),
+                                    line_number=line_no,
+                                    default_value=value if not is_sensitive else "[REDACTED]",
+                                    is_documented=is_documented,
+                                    is_sensitive=is_sensitive,
                                 )
-
-                                configs.append(
-                                    ConfigArtifact(
-                                        name=key,
-                                        type="env_var",
-                                        file_path=str(env_file),
-                                        line_number=line_no,
-                                        default_value=value if not is_sensitive else "[REDACTED]",
-                                        is_documented=is_documented,
-                                        is_sensitive=is_sensitive,
-                                    )
-                                )
+                            )
 
                 except Exception as e:
                     print(f"Error reading {env_file}: {e}")
@@ -323,38 +350,32 @@ class ConfigurationExtractor:
         return configs
 
     def extract_from_config_files(self, project_path: Path) -> List[ConfigArtifact]:
-        """Extract from common config files (appsettings.json, config.yml, etc.)"""
+        """Extract from common config files (JSON, YAML, TOML)"""
         configs = []
 
         # JSON config files
-        for json_file in project_path.rglob("*config*.json"):
-            if self.should_skip_file(json_file):
-                continue
+        json_patterns = ["*config*.json", "*.config.json", "appsettings*.json", "package.json"]
+        for pattern in json_patterns:
+            for json_file in project_path.rglob(pattern):
+                if self.should_skip_file(json_file):
+                    continue
+                configs.extend(self._extract_from_json(json_file))
 
-            try:
-                with open(json_file, "r") as f:
-                    data = json.load(f)
-                    flat_configs = self.flatten_json_config(data)
+        # YAML config files
+        yaml_patterns = ["*.yml", "*.yaml", "*config*.yml", "*config*.yaml", "docker-compose*.yml"]
+        for pattern in yaml_patterns:
+            for yaml_file in project_path.rglob(pattern):
+                if self.should_skip_file(yaml_file):
+                    continue
+                configs.extend(self._extract_from_yaml(yaml_file))
 
-                    for key, value in flat_configs.items():
-                        is_sensitive = any(
-                            pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
-                        )
-
-                        configs.append(
-                            ConfigArtifact(
-                                name=key,
-                                type="config_param",
-                                file_path=str(json_file),
-                                line_number=1,  # Can't easily determine line in JSON
-                                default_value=str(value) if not is_sensitive else "[REDACTED]",
-                                is_sensitive=is_sensitive,
-                                is_documented=False,
-                            )
-                        )
-
-            except Exception:
-                pass  # Skip invalid JSON
+        # TOML config files
+        toml_patterns = ["*.toml", "pyproject.toml", "Cargo.toml", "config.toml"]
+        for pattern in toml_patterns:
+            for toml_file in project_path.rglob(pattern):
+                if self.should_skip_file(toml_file):
+                    continue
+                configs.extend(self._extract_from_toml(toml_file))
 
         return configs
 
@@ -371,6 +392,97 @@ class ConfigurationExtractor:
                 result[full_key] = value
 
         return result
+
+    def _extract_from_json(self, json_file: Path) -> List[ConfigArtifact]:
+        """Extract configuration from JSON file"""
+        configs = []
+        try:
+            with open(json_file, "r") as f:
+                data = json.load(f)
+                flat_configs = self.flatten_json_config(data)
+
+                for key, value in flat_configs.items():
+                    is_sensitive = any(
+                        pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
+                    )
+
+                    configs.append(
+                        ConfigArtifact(
+                            name=key,
+                            type="config_param",
+                            file_path=str(json_file),
+                            line_number=1,  # JSON doesn't have meaningful line numbers
+                            default_value=str(value) if not is_sensitive else "[REDACTED]",
+                            is_sensitive=is_sensitive,
+                            is_documented=False,
+                        )
+                    )
+        except Exception as e:
+            print(f"Error parsing JSON {json_file}: {e}")
+        return configs
+
+    def _extract_from_yaml(self, yaml_file: Path) -> List[ConfigArtifact]:
+        """Extract configuration from YAML file"""
+        configs = []
+        try:
+            import yaml
+            with open(yaml_file, "r") as f:
+                data = yaml.safe_load(f)
+                if data:
+                    flat_configs = self.flatten_json_config(data)  # Works for YAML too
+
+                    for key, value in flat_configs.items():
+                        is_sensitive = any(
+                            pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
+                        )
+
+                        configs.append(
+                            ConfigArtifact(
+                                name=key,
+                                type="config_param",
+                                file_path=str(yaml_file),
+                                line_number=1,
+                                default_value=str(value) if not is_sensitive else "[REDACTED]",
+                                is_sensitive=is_sensitive,
+                                is_documented=False,
+                            )
+                        )
+        except ImportError:
+            print("PyYAML not installed. Install with: pip install pyyaml")
+        except Exception as e:
+            print(f"Error parsing YAML {yaml_file}: {e}")
+        return configs
+
+    def _extract_from_toml(self, toml_file: Path) -> List[ConfigArtifact]:
+        """Extract configuration from TOML file"""
+        configs = []
+        try:
+            import toml
+            with open(toml_file, "r") as f:
+                data = toml.load(f)
+                flat_configs = self.flatten_json_config(data)  # Works for TOML too
+
+                for key, value in flat_configs.items():
+                    is_sensitive = any(
+                        pattern in key.upper() for pattern in self.SENSITIVE_PATTERNS
+                    )
+
+                    configs.append(
+                        ConfigArtifact(
+                            name=key,
+                            type="config_param",
+                            file_path=str(toml_file),
+                            line_number=1,
+                            default_value=str(value) if not is_sensitive else "[REDACTED]",
+                            is_sensitive=is_sensitive,
+                            is_documented=False,
+                        )
+                    )
+        except ImportError:
+            print("toml not installed. Install with: pip install toml")
+        except Exception as e:
+            print(f"Error parsing TOML {toml_file}: {e}")
+        return configs
 
     def check_documentation(self, configs: List[ConfigArtifact], project_path: Path):
         """Check if configs are documented in README or docs"""
