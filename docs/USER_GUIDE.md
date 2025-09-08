@@ -1,350 +1,312 @@
 # DDD Framework User Guide
 
-## Quick Start (5 Minutes)
+## Quick Start
 
 ### Installation
-```bash
-# Install with uv (recommended)
-uv add ddd-framework
 
-# Or clone and install for development
-git clone https://github.com/yourorg/ddd-framework
-cd ddd-framework
-uv pip install -e ".[dev]"
+```bash
+# Using uv (recommended)
+uv venv
+uv pip install -e .
+
+# Using pip
+pip install -e .
 ```
 
 ### Your First Coverage Check
+
 ```bash
-# Measure any project's documentation
+# Measure any project's documentation coverage
 ddd measure ./my-project
 
-# Assert coverage meets standards
-ddd assert-coverage ./my-project --threshold 85
+# You'll see output like:
+📊 Documentation Coverage Report
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Overall Coverage: 87.5% ✅ PASSED
 
-# Generate documentation
-ddd generate-docs ./my-project --output ./docs
+Dependencies    92% ✅
+Automation      85% ✅  
+Governance      94% ✅
+Health          81% ⚠️
 ```
 
-## Understanding Documentation Coverage
+## Core Concepts
+
+### What is Documentation Coverage?
+
+Just like code coverage measures how much of your code is tested, documentation coverage measures how much of your maintenance knowledge is documented.
+
+**The Problem**: At 2AM during an incident, ops teams need answers:
+- What IAM permissions does this need?
+- What can go wrong?
+- How do I know if it's working?
+- What does this depend on?
+
+**The Solution**: DDD automatically extracts this information and measures completeness.
 
 ### The DAYLIGHT Dimensions
 
-DDD measures documentation across 8 critical maintenance dimensions:
+DDD measures documentation across 8 dimensions (DAYLIGHT):
+- **D**ependencies - What does this need to run?
+- **A**utomation - How do I deploy this?
+- **Y**earbook - Who owns this and why?
+- **L**ifecycle - How does this evolve?
+- **I**ntegration - How does this connect?
+- **G**overnance - What permissions/security?
+- **H**ealth - How do I know it's working?
+- **T**esting - How do I verify it works?
 
-| Dimension | What It Measures | Why It Matters |
-|-----------|-----------------|----------------|
-| **D**ependencies | Packages, versions, external services | Prevents "works on my machine" |
-| **A**utomation | Scripts, CI/CD, deployment | Enables hands-off operations |
-| **Y**earbook | History, contributors, decisions | Preserves institutional knowledge |
-| **L**ifecycle | Environments, deployment, config | Smooth deployments |
-| **I**ntegration | APIs, webhooks, connections | System interoperability |
-| **G**overnance | Standards, reviews, security | Compliance and quality |
-| **H**ealth | Monitoring, performance, testing | Proactive maintenance |
-| **T**esting | Test structure, coverage, commands | Quality assurance |
+## CLI Commands
 
-### Coverage Calculation
-
-```
-Element Coverage (30%): Does documentation exist?
-Completeness Coverage (40%): Are required fields present?
-Usefulness Coverage (30%): Is it useful at 2AM during an incident?
-```
-
-## Command Reference
-
-### `ddd measure`
-Analyzes documentation coverage for a project.
+### measure - Check Documentation Coverage
 
 ```bash
-# Basic usage
-ddd measure ./project-path
+# Basic measurement
+ddd measure ./project
 
-# With output file
-ddd measure ./project-path --output coverage-report.json
+# Save results to JSON
+ddd measure ./project --output coverage.json
 
-# Verbose mode for debugging
-ddd measure ./project-path --verbose
+# Verbose output with details
+ddd measure ./project --verbose
+```
+
+### assert-coverage - CI/CD Integration
+
+```bash
+# Fail if coverage < 85% (default)
+ddd assert-coverage ./project
 
 # Custom threshold
-ddd measure ./project-path --threshold 90
+ddd assert-coverage ./project --threshold 0.90
+
+# Use in CI/CD pipeline
+ddd assert-coverage . || exit 1
 ```
 
-**Example Output:**
-```
-📊 Measuring documentation coverage for ./ansible-playbooks
-
-╭─────────────────────────────────── Result ───────────────────────────────────╮
-│ ✅ Documentation Coverage PASSED                                             │
-│ Overall Coverage: 87.3%                                                      │
-╰──────────────────────────────────────────────────────────────────────────────╯
-
-Coverage by Dimension:
-┏━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┓
-┃ Dimension    ┃ Coverage ┃ Status ┃
-┡━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━┩
-│ Dependencies │    95.0% │   ✅   │
-│ Automation   │    88.0% │   ✅   │
-│ Yearbook     │    75.0% │   ⚠️   │
-│ Lifecycle    │    92.0% │   ✅   │
-└──────────────┴──────────┴────────┘
-```
-
-### `ddd assert-coverage`
-Validates documentation meets minimum standards (CI/CD friendly).
+### config-coverage - Configuration Documentation
 
 ```bash
-# Default 85% threshold
-ddd assert-coverage ./project-path
+# Check configuration documentation specifically
+ddd config-coverage ./project
 
-# Custom threshold
-ddd assert-coverage ./project-path --threshold 90
-
-# Returns exit code 0 (pass) or 1 (fail) for CI/CD
+# Shows extracted configs:
+✅ Found 23 configuration parameters
+⚠️ 5 sensitive values detected (masked)
+📝 Environment variables documented: 18/23
 ```
 
-### `ddd generate-docs`
-Creates maintenance runbooks from extracted documentation.
+### demo - See RED-GREEN-REFACTOR in Action
 
 ```bash
-# Generate HTML documentation
-ddd generate-docs ./project-path --format html
-
-# Generate Markdown for wikis
-ddd generate-docs ./project-path --format markdown
-
-# Specify output directory
-ddd generate-docs ./project-path --output ./runbooks
-```
-
-### `ddd demo`
-Runs the complete RED-GREEN-REFACTOR demonstration.
-
-```bash
-# Interactive demo mode
-ddd demo ./ansible-playbooks
+# Watch the TDD cycle for documentation
+ddd demo ./project
 
 # Shows:
-# 1. RED: Current poor documentation
-# 2. GREEN: After extraction
-# 3. REFACTOR: Quality improvements
+🔴 RED: Documentation incomplete (65%)
+🟢 GREEN: Extracting documentation...
+♻️ REFACTOR: Optimizing quality...
+✅ Coverage: 87% PASSED
 ```
 
-## Real-World Examples
+## Configuration
 
-### Example 1: Ansible Playbook Documentation
+### Project Configuration
 
-**Before DDD** (15% coverage):
-```yaml
-# deploy.yml
-- name: Deploy application
-  hosts: production
-  tasks:
-    - name: Update app
-      ec2_instance:
-        state: running
-        # ... more tasks
-```
-
-**After DDD** (85% coverage):
-```markdown
-## Deployment Playbook Documentation
-
-### Required Permissions
-- ec2:RunInstances
-- ec2:DescribeInstances
-- ec2:TerminateInstances
-- iam:PassRole
-
-### Error Scenarios
-1. **InsufficientInstanceCapacity**
-   - Recovery: Retry in different AZ
-   - Frequency: 2% of deployments
-
-2. **RequestLimitExceeded**
-   - Recovery: Implement exponential backoff
-   - Frequency: During rapid scaling
-
-### Dependencies
-- boto3 >= 1.26.0
-- ansible >= 2.9
-- AWS CLI configured
-
-### State Management
-- Idempotent: ✅ Yes
-- Check mode: ✅ Supported
-- Rollback: Manual via previous AMI
-```
-
-### Example 2: Terraform Infrastructure
-
-**Running DDD on Terraform:**
-```bash
-ddd measure ./terraform-modules
-
-# Extracts:
-# - Provider permissions needed
-# - State file requirements
-# - Variable documentation
-# - Output descriptions
-# - Resource dependencies
-```
-
-### Example 3: Configuration Coverage
-
-```bash
-ddd config-coverage ./my-app
-
-# Finds and documents:
-# - Environment variables
-# - Connection strings
-# - API keys and secrets
-# - Configuration files
-# - Default values
-```
-
-## Integration Examples
-
-### CI/CD Integration (GitHub Actions)
+Create `.ddd.yml` in your project root:
 
 ```yaml
-name: Documentation Coverage Check
+# .ddd.yml
+coverage:
+  threshold: 0.85  # Minimum acceptable coverage
+  weights:
+    governance: 1.3  # Increase importance of security docs
+    yearbook: 0.5    # Decrease importance of ownership docs
+
+extractors:
+  - ansible
+  - python
+  - config
+
+output:
+  format: json
+  file: coverage.json
+```
+
+### Environment Variables
+
+```bash
+# Set default threshold
+export DDD_COVERAGE_THRESHOLD=0.90
+
+# Set output format
+export DDD_OUTPUT_FORMAT=json
+
+# Enable debug logging
+export DDD_DEBUG=1
+```
+
+## Practical Examples
+
+### Example 1: Python Project
+
+```bash
+$ ddd measure ./my-python-app
+
+📊 Analyzing Python project...
+
+✅ Extracted:
+- 12 package dependencies
+- 8 environment variables
+- 15 error scenarios
+- 3 API endpoints
+
+Coverage by Dimension:
+Dependencies    95% ✅ (pip requirements found)
+Configuration   88% ✅ (env vars documented)
+Governance      73% ⚠️ (missing IAM docs)
+
+Overall: 85.3% ✅ PASSED
+```
+
+### Example 2: Ansible Playbook
+
+```bash
+$ ddd measure ./ansible-playbooks
+
+📊 Analyzing Ansible playbooks...
+
+✅ Extracted:
+- 23 IAM permissions needed
+- 5 AWS services used
+- 8 error handlers
+- 12 variables required
+
+Coverage by Dimension:
+Governance     98% ✅ (IAM permissions complete)
+Automation     92% ✅ (playbooks documented)
+Dependencies   89% ✅ (requirements specified)
+
+Overall: 93.1% ✅ PASSED
+```
+
+### Example 3: CI/CD Pipeline Integration
+
+```yaml
+# .github/workflows/documentation.yml
+name: Documentation Coverage
 
 on: [push, pull_request]
 
 jobs:
-  doc-coverage:
+  coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       
       - name: Install DDD
-        run: pip install ddd-framework
+        run: |
+          pip install ddd-framework
       
       - name: Check Documentation Coverage
-        run: ddd assert-coverage . --threshold 85
-      
-      - name: Generate Documentation
-        if: success()
-        run: ddd generate-docs . --output ./docs
-      
-      - name: Upload Documentation
-        uses: actions/upload-artifact@v2
-        with:
-          name: documentation
-          path: docs/
+        run: |
+          ddd assert-coverage . --threshold 0.85
 ```
 
-### Pre-commit Hook
+## Understanding Coverage Scores
 
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: local
-    hooks:
-      - id: ddd-coverage
-        name: Documentation Coverage Check
-        entry: ddd assert-coverage
-        language: system
-        pass_filenames: false
-        always_run: true
-```
+### Three Levels of Measurement
 
-### Docker Integration
+1. **Element Coverage (30%)**: Does it exist?
+   - Binary check - documentation present or not
 
-```dockerfile
-# Multi-stage build with documentation
-FROM python:3.11 as docs
-COPY . /app
-WORKDIR /app
-RUN pip install ddd-framework
-RUN ddd generate-docs . --output /docs
+2. **Completeness (40%)**: Is it complete?
+   - Required fields populated
+   - No placeholders or TODOs
 
-FROM nginx:alpine
-COPY --from=docs /docs /usr/share/nginx/html
-```
+3. **Usefulness (30%)**: Can someone use it at 2AM?
+   - Clear, actionable instructions
+   - Examples and error handling
 
-## Advanced Usage
+### Interpreting Results
 
-### Custom Extractors
-
-Create extractors for your tools:
-
-```python
-from ddd.artifact_extractors.base import InfrastructureExtractor
-
-class KubernetesExtractor(InfrastructureExtractor):
-    def extract_permissions(self, content: str):
-        # Extract RBAC permissions
-        pass
-    
-    def extract_error_patterns(self, content: str):
-        # Extract common pod failures
-        pass
-```
-
-### Configuration File
-
-```yaml
-# .ddd.yml
-coverage:
-  threshold: 85
-  weights:
-    dependencies: 0.15
-    automation: 0.15
-    yearbook: 0.05
-    lifecycle: 0.15
-    integration: 0.10
-    governance: 0.10
-    health: 0.15
-    testing: 0.15
-
-extractors:
-  - ansible
-  - terraform
-  - kubernetes
-
-output:
-  format: html
-  directory: ./docs/generated
-```
+- **90-100%**: Excellent - Production ready
+- **85-90%**: Good - Meets standards  
+- **75-85%**: Fair - Needs improvement
+- **Below 75%**: Poor - Significant gaps
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Low Coverage Scores**
-- Check if README.md exists
-- Ensure package.json/requirements.txt present
-- Add .env.example for configuration
+**No documentation found**
+```bash
+# Check supported file types
+ddd measure . --verbose
 
-**Extraction Failures**
-- Verify file permissions
-- Check Python version (3.11+ required)
-- Ensure dependencies installed
+# Ensure files aren't gitignored
+git check-ignore your-file.py
+```
 
-**Performance Issues**
-- Use `--exclude` for large directories
-- Implement caching with `--cache`
-- Run in parallel with `--parallel`
+**Coverage below threshold**
+```bash
+# See detailed breakdown
+ddd measure . --verbose
+
+# Focus on specific dimension
+ddd measure . --dimension governance
+```
+
+**Extractor not recognizing patterns**
+```bash
+# Enable debug mode
+DDD_DEBUG=1 ddd measure .
+
+# Check extractor patterns
+ddd show-patterns --extractor ansible
+```
+
+## Supported Languages & Frameworks
+
+### Currently Supported
+- ✅ **Python**: Dependencies, configs, error handling
+- ✅ **JavaScript/Node**: package.json, configs
+- ✅ **Ansible**: IAM permissions, AWS resources
+- ✅ **Configuration files**: YAML, JSON, TOML, .env
+
+### Coming Soon
+- 🚧 Terraform
+- 🚧 CloudFormation  
+- 🚧 Kubernetes
+- 🚧 Docker
 
 ## Best Practices
 
-1. **Start with README**: A good README boosts coverage 20-30%
-2. **Document configs**: Use .env.example for all variables
-3. **Include examples**: Code examples improve usefulness score
-4. **Version everything**: Lock files improve dependency scores
-5. **Automate extraction**: Run in CI/CD for continuous coverage
+1. **Run in CI/CD**: Make documentation coverage a gate
+2. **Start with 75%**: Gradually increase threshold
+3. **Focus on Governance**: Security docs are critical
+4. **Document configs**: Environment variables matter
+5. **Update regularly**: Keep docs in sync with code
 
-## FAQ
+## Getting Help
 
-**Q: How is this different from code coverage?**
-A: Code coverage measures test completeness. Documentation coverage measures maintenance readiness.
+```bash
+# Show help
+ddd --help
 
-**Q: Can I customize the dimensions?**
-A: Yes, via `.ddd.yml` configuration file.
+# Show version
+ddd --version
 
-**Q: Does it work with proprietary tools?**
-A: Yes, create custom extractors for any tool.
+# Enable debug output
+DDD_DEBUG=1 ddd measure .
+```
 
-**Q: How accurate is the extraction?**
-A: 90-95% accurate for supported tools, validated against official documentation.
+## Next Steps
+
+1. [Read the API Reference](API_REFERENCE_UNIFIED.md) for programmatic usage
+2. [See DAYLIGHT Specification](DAYLIGHT_SPECIFICATION.md) for dimension details
+3. [Contributing Guide](DEVELOPMENT_GUIDE.md) to add extractors
+
+---
+
+*Make your documentation as tested as your code - maintain 85% coverage!*

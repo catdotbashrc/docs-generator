@@ -1,431 +1,268 @@
 # DDD Framework API Reference
 
-## Core Classes
+## Overview
 
-### `DocumentationCoverage`
-Main coverage calculator implementing 3-level measurement system.
+The DDD Framework provides extractors to automatically generate maintenance documentation from code. This API reference covers all implemented classes and methods.
+
+## Core Modules
+
+### DocumentationCoverage
+**Module**: `ddd.coverage`
+
+Main coverage calculator implementing the 3-tier measurement model.
 
 ```python
-from ddd.coverage import DocumentationCoverage
-
-coverage = DocumentationCoverage()
-result = coverage.measure(extracted_data)
+class DocumentationCoverage:
+    def calculate(self, documentation: Dict, spec: DAYLIGHTSpec) -> CoverageResult:
+        """Calculate documentation coverage against DAYLIGHT specifications"""
+        # Returns CoverageResult with overall_score, dimension_scores, and pass/fail
 ```
 
-#### Methods
-
-##### `measure(extracted_data: Dict) -> CoverageResult`
-Calculate documentation coverage across DAYLIGHT dimensions.
-
-**Parameters:**
-- `extracted_data`: Dictionary containing extracted documentation
-
-**Returns:**
-- `CoverageResult`: Object containing coverage scores and recommendations
-
-**Example:**
-```python
-result = coverage.measure({
-    'dependencies': {'npm': ['react', 'express']},
-    'automation': {'scripts': ['test', 'build']},
-    # ... other dimensions
-})
-print(f"Coverage: {result.overall_coverage}%")
-```
-
-##### `assert_coverage(extracted_data: Dict, minimum: float = 0.85)`
-Assert documentation meets minimum threshold.
-
-**Parameters:**
-- `extracted_data`: Extracted documentation dictionary
-- `minimum`: Minimum coverage threshold (0.0-1.0)
-
-**Raises:**
-- `AssertionError`: If coverage below minimum
+**Key Methods:**
+- `calculate()`: Compute coverage scores (element 30%, completeness 40%, usefulness 30%)
+- Returns `CoverageResult` with score between 0.0-1.0
 
 ---
 
-### `InfrastructureExtractor`
-Abstract base class for tool-specific extractors.
+### Extractors
+
+#### BaseExtractor
+**Module**: `ddd.artifact_extractors.base`
+
+Abstract base for all extractors.
 
 ```python
-from ddd.artifact_extractors.base import InfrastructureExtractor
-
-class MyExtractor(InfrastructureExtractor):
-    def extract_permissions(self, content: str):
-        # Implementation
-        pass
-```
-
-#### Abstract Methods (Must Implement)
-
-##### `extract_permissions(content: str) -> List[PermissionRequirement]`
-Extract permission requirements from code.
-
-##### `extract_error_patterns(content: str) -> List[ErrorPattern]`
-Extract common error patterns and recovery procedures.
-
-##### `extract_state_management(content: str) -> StateManagement`
-Extract state management information (idempotency, rollback).
-
-##### `extract_dependencies(content: str) -> List[Dependency]`
-Extract external dependencies and versions.
-
-##### `extract_connection_requirements(content: str) -> List[ConnectionRequirement]`
-Extract network and connection requirements.
-
-#### Concrete Methods
-
-##### `extract(file_path: Path) -> MaintenanceDocument`
-Template method orchestrating extraction process.
-
-**Parameters:**
-- `file_path`: Path to file to extract from
-
-**Returns:**
-- `MaintenanceDocument`: Complete extracted documentation
-
----
-
-### `AnsibleModuleExtractor`
-Concrete implementation for Ansible modules.
-
-```python
-from ddd.artifact_extractors.ansible_extractor import AnsibleModuleExtractor
-
-extractor = AnsibleModuleExtractor()
-doc = extractor.extract(Path("deploy.yml"))
-```
-
-#### Additional Methods
-
-##### `extract_documentation_block(content: str) -> Dict`
-Extract DOCUMENTATION block from Ansible module.
-
-##### `extract_examples_block(content: str) -> List[str]`
-Extract EXAMPLES block with usage examples.
-
-##### `extract_return_block(content: str) -> Dict`
-Extract RETURN block with output documentation.
-
----
-
-## Data Classes
-
-### `PermissionRequirement`
-Abstract base for permission requirements.
-
-```python
-@dataclass(frozen=True)
-class PermissionRequirement(ABC):
-    service: str
-    resource: str
-    action: str
-    
+class BaseExtractor(ABC):
     @abstractmethod
-    def to_iam_policy(self) -> str:
-        """Convert to IAM policy statement."""
-        pass
+    def extract(self, source: Union[str, Path]) -> Dict[str, Any]:
+        """Extract documentation from source"""
 ```
 
-### `AWSIAMPermission`
-AWS-specific permission implementation.
+#### AnsibleModuleExtractor  
+**Module**: `ddd.artifact_extractors.ansible_extractor`
+
+Extracts AWS IAM permissions from Ansible playbooks.
 
 ```python
-@dataclass(frozen=True)
-class AWSIAMPermission(PermissionRequirement):
-    service: str
-    action: str
-    resource: str = "*"
-    
-    @classmethod
-    def from_boto3_call(cls, service: str, method: str):
-        """Create from boto3 client method call."""
-        return cls(
-            service=service,
-            action=f"{service}:{method}",
-            resource="*"
-        )
+class AnsibleModuleExtractor(BaseExtractor):
+    def extract(self, content: str) -> Dict[str, Any]:
+        """Extract IAM permissions from boto3 calls"""
+        # Returns: {"permissions": ["ec2:DescribeInstances", ...]}
 ```
 
-### `ErrorPattern`
-Represents an error pattern with recovery procedure.
+**Pattern Matching:**
+- Boto3 client calls: `client.describe_instances()` → `ec2:DescribeInstances`
+- Service detection from `boto3.client('service_name')`
+
+#### AdvancedAnsibleExtractor
+**Module**: `ddd.extractors.ansible_advanced`
+
+AST-based deep extraction for Ansible modules.
 
 ```python
-@dataclass
-class ErrorPattern:
-    error_type: str
-    description: str
-    recovery_procedure: str
-    frequency: Optional[str] = None
-    severity: str = "medium"
+class AdvancedAnsibleExtractor:
+    def extract_from_ansible_module(self, file_path: Path) -> Dict:
+        """Advanced extraction using AST parsing"""
+        # Returns comprehensive DAYLIGHT dimension data
 ```
 
-### `StateManagement`
-State management information.
+**Capabilities:**
+- AST parsing for accurate extraction
+- Error scenario detection
+- State management patterns
+- Rollback behavior identification
+
+#### GenericPythonExtractor
+**Module**: `ddd.extractors.python_generic`
+
+Extracts filesystem and network operations from Python code.
 
 ```python
-@dataclass
-class StateManagement:
-    idempotent: bool
-    rollback_capable: bool
-    check_mode_supported: bool
-    state_tracking_method: str
-    drift_detection: Optional[str] = None
+class GenericPythonExtractor:
+    def extract(self, source_code: str) -> Dict[str, Any]:
+        """Extract Python operations documentation"""
+        # Returns filesystem ops, network calls, error handling
 ```
 
-### `MaintenanceDocument`
-Complete maintenance documentation.
+#### ConfigurationExtractor
+**Module**: `ddd.config_extractors`
+
+Multi-language configuration discovery.
 
 ```python
-@dataclass
-class MaintenanceDocument:
-    permissions: List[PermissionRequirement]
-    error_patterns: List[ErrorPattern]
-    state_management: StateManagement
-    dependencies: List[Dependency]
-    connection_requirements: List[ConnectionRequirement]
-    maintenance_scenarios: List[MaintenanceScenario] = field(default_factory=list)
-    
-    def to_markdown(self) -> str:
-        """Convert to Markdown documentation."""
-        pass
-    
-    def to_html(self) -> str:
-        """Convert to HTML documentation."""
-        pass
+class ConfigurationExtractor:
+    def extract_configs(self, project_path: Path) -> List[ConfigArtifact]:
+        """Extract all configuration from project"""
+        # Returns list of ConfigArtifact objects
 ```
+
+**Supported Formats:**
+- Environment variables (`.env`, shell scripts)
+- Python (`settings.py`, constants)
+- JavaScript/TypeScript (config objects)
+- YAML, JSON, TOML configuration files
+
+**Security Features:**
+- Automatic sensitive data detection
+- Connection string identification
+- API key pattern matching
 
 ---
 
-## Specifications
+### Specifications
 
-### `DimensionSpec`
-Specification for a documentation dimension.
+#### DAYLIGHTSpec
+**Module**: `ddd.specs`
 
-```python
-@dataclass
-class DimensionSpec:
-    name: str
-    required_elements: List[str]
-    minimum_coverage: float = 0.7
-    weight: float = 0.125
-    
-    def validate(self, data: Dict) -> ValidationResult:
-        """Validate dimension data against spec."""
-        pass
-```
-
-### `DAYLIGHTSpec`
-Complete DAYLIGHT dimensions specification.
+Defines the 8 DAYLIGHT documentation dimensions.
 
 ```python
 class DAYLIGHTSpec:
     dimensions = {
-        'dependencies': DimensionSpec(
-            name='Dependencies',
-            required_elements=['runtime', 'development', 'versions'],
-            weight=0.15
-        ),
-        'automation': DimensionSpec(
-            name='Automation',
-            required_elements=['scripts', 'ci_cd', 'deployment'],
-            weight=0.15
-        ),
-        # ... other dimensions
+        "dependencies": DimensionSpec(weight=1.0, min_coverage=0.85),
+        "automation": DimensionSpec(weight=1.0, min_coverage=0.85),
+        "yearbook": DimensionSpec(weight=0.8, min_coverage=0.75),
+        "lifecycle": DimensionSpec(weight=1.0, min_coverage=0.80),
+        "integration": DimensionSpec(weight=0.9, min_coverage=0.80),
+        "governance": DimensionSpec(weight=1.3, min_coverage=0.90),
+        "health": DimensionSpec(weight=1.0, min_coverage=0.85),
+        "testing": DimensionSpec(weight=1.1, min_coverage=0.85)
     }
 ```
 
----
+#### DimensionSpec
+**Module**: `ddd.specs`
 
-## CLI Module
-
-### Main Entry Point
+Specification for a single DAYLIGHT dimension.
 
 ```python
-import click
-from ddd.cli import main
-
-@click.group()
-def cli():
-    """DDD Framework CLI."""
-    pass
-
-@cli.command()
-@click.argument('project_path')
-@click.option('--threshold', default=0.85)
-def measure(project_path, threshold):
-    """Measure documentation coverage."""
-    # Implementation
+class DimensionSpec:
+    required_elements: List[str]  # Must-have documentation elements
+    min_coverage: float           # Minimum acceptable coverage (0.0-1.0)
+    weight: float                 # Importance weight for scoring
 ```
 
 ---
 
-## Exceptions
+## CLI Interface
 
-### `ExtractionError`
-Raised when extraction fails.
+### Main Commands
 
-```python
-class ExtractionError(Exception):
-    """Failed to extract documentation."""
-    pass
+```bash
+# Measure documentation coverage
+ddd measure <project_path> [--output json]
+
+# Assert coverage meets threshold
+ddd assert-coverage <project_path> [--threshold 0.85]
+
+# Check configuration documentation
+ddd config-coverage <project_path>
+
+# Run RED-GREEN-REFACTOR demo
+ddd demo <project_path>
 ```
 
-### `CoverageError`
-Raised when coverage validation fails.
-
-```python
-class CoverageError(Exception):
-    """Documentation coverage below threshold."""
-    pass
-```
+### Return Codes
+- `0`: Success (coverage meets threshold)
+- `1`: Failure (coverage below threshold)
+- `2`: Error (invalid input or processing error)
 
 ---
 
 ## Usage Examples
 
-### Complete Extraction Pipeline
-
-```python
-from pathlib import Path
-from ddd.artifact_extractors.ansible_extractor import AnsibleModuleExtractor
-from ddd.coverage import DocumentationCoverage
-
-# Extract documentation
-extractor = AnsibleModuleExtractor()
-doc = extractor.extract(Path("playbook.yml"))
-
-# Convert to dictionary
-extracted_data = doc.to_dict()
-
-# Measure coverage
-coverage = DocumentationCoverage()
-result = coverage.measure(extracted_data)
-
-# Check if passes
-if result.passed:
-    print(f"✅ Coverage: {result.overall_coverage}%")
-else:
-    print(f"❌ Coverage: {result.overall_coverage}%")
-    print("Missing:", result.missing_elements)
-```
-
-### Custom Extractor Implementation
-
-```python
-from ddd.artifact_extractors.base import InfrastructureExtractor
-from typing import List
-import re
-
-class TerraformExtractor(InfrastructureExtractor):
-    
-    def extract_permissions(self, content: str) -> List[PermissionRequirement]:
-        # Extract AWS provider permissions
-        permissions = []
-        
-        # Find resource declarations
-        resources = re.findall(r'resource "aws_(\w+)"', content)
-        for resource_type in resources:
-            # Map to IAM permissions
-            permissions.append(
-                AWSIAMPermission(
-                    service=resource_type.split('_')[0],
-                    action=f"{resource_type}:*",
-                    resource="*"
-                )
-            )
-        
-        return permissions
-    
-    def extract_state_management(self, content: str) -> StateManagement:
-        return StateManagement(
-            idempotent=True,  # Terraform is idempotent
-            rollback_capable=True,  # Via state file
-            check_mode_supported=True,  # terraform plan
-            state_tracking_method="terraform.tfstate"
-        )
-```
-
-### Programmatic Coverage Assertion
-
+### Basic Coverage Measurement
 ```python
 from ddd.coverage import DocumentationCoverage
-
-def validate_documentation(project_path: Path, threshold: float = 0.85):
-    """Validate project documentation in CI/CD."""
-    
-    coverage = DocumentationCoverage()
-    extractor = get_extractor_for_project(project_path)
-    
-    for file in project_path.glob("**/*"):
-        if should_extract(file):
-            doc = extractor.extract(file)
-            data = doc.to_dict()
-            
-            try:
-                coverage.assert_coverage(data, minimum=threshold)
-                print(f"✅ {file}: Passed")
-            except AssertionError as e:
-                print(f"❌ {file}: {e}")
-                return False
-    
-    return True
-```
-
----
-
-## Configuration API
-
-### Loading Configuration
-
-```python
-from ddd.config import load_config
-
-config = load_config(".ddd.yml")
-threshold = config.get("coverage.threshold", 0.85)
-```
-
-### Custom Dimension Weights
-
-```python
 from ddd.specs import DAYLIGHTSpec
 
-# Customize weights
-DAYLIGHTSpec.dimensions['dependencies'].weight = 0.2
-DAYLIGHTSpec.dimensions['testing'].weight = 0.2
-# Weights must sum to 1.0
+coverage = DocumentationCoverage()
+spec = DAYLIGHTSpec()
+result = coverage.calculate(extracted_docs, spec)
+
+if result.passed:
+    print(f"✅ Coverage: {result.overall_score:.1%}")
+else:
+    print(f"❌ Coverage: {result.overall_score:.1%} (below 85%)")
+```
+
+### Extract Ansible Documentation
+```python
+from ddd.artifact_extractors.ansible_extractor import AnsibleModuleExtractor
+
+extractor = AnsibleModuleExtractor()
+docs = extractor.extract(ansible_content)
+print(f"Required IAM permissions: {docs['permissions']}")
+```
+
+### Configuration Discovery
+```python
+from ddd.config_extractors import ConfigurationExtractor
+from pathlib import Path
+
+extractor = ConfigurationExtractor()
+configs = extractor.extract_configs(Path("./my_project"))
+
+for config in configs:
+    if config.is_sensitive:
+        print(f"⚠️ Sensitive: {config.name}")
+    else:
+        print(f"Config: {config.name} = {config.default_value}")
 ```
 
 ---
 
-## Extension Points
+## Data Models
 
-### Adding New Extractors
-
-1. Inherit from `InfrastructureExtractor`
-2. Implement abstract methods
-3. Register in extractor factory
-
+### CoverageResult
 ```python
-from ddd.extractors.factory import register_extractor
-
-@register_extractor("kubernetes")
-class KubernetesExtractor(InfrastructureExtractor):
-    # Implementation
-    pass
+@dataclass
+class CoverageResult:
+    overall_score: float          # 0.0-1.0
+    dimension_scores: Dict[str, float]
+    passed: bool                  # True if >= threshold
+    details: Dict[str, Any]      # Detailed breakdown
 ```
 
-### Custom Coverage Dimensions
-
+### ConfigArtifact
 ```python
-from ddd.specs import DimensionSpec, register_dimension
-
-custom_dimension = DimensionSpec(
-    name="Security",
-    required_elements=["encryption", "authentication", "audit"],
-    weight=0.1
-)
-
-register_dimension("security", custom_dimension)
+@dataclass
+class ConfigArtifact:
+    name: str                     # Variable/setting name
+    category: str                 # Type of configuration
+    source_file: Path            # Where it was found
+    line_number: int             # Location in file
+    default_value: Optional[str] # Default if specified
+    is_sensitive: bool           # Contains secrets?
+    validation_rules: List[str]  # Validation requirements
 ```
+
+---
+
+## Error Handling
+
+All extractors follow consistent error handling:
+
+- **FileNotFoundError**: Source file doesn't exist
+- **ValueError**: Invalid input format or content
+- **ExtractionError**: Unable to parse or extract documentation
+
+Example:
+```python
+try:
+    docs = extractor.extract(source_file)
+except FileNotFoundError:
+    print(f"Source file not found: {source_file}")
+except ExtractionError as e:
+    print(f"Extraction failed: {e}")
+```
+
+---
+
+## Version Information
+
+- **Current Version**: 0.1.0 (MVP)
+- **Python Support**: 3.11+
+- **License**: MIT
+
+For complete examples and tutorials, see the [User Guide](USER_GUIDE.md).
