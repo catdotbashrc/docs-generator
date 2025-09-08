@@ -76,10 +76,16 @@ uv run ddd assert-coverage ./path/to/project      # Assert coverage meets thresh
 uv run ddd config-coverage ./path/to/project      # Check configuration documentation
 uv run ddd demo ./path/to/project                 # Run RED-GREEN-REFACTOR demo
 
-# Manual testing commands
+# Testing commands
 uv run pytest                                      # Run all tests
-uv run pytest tests/test_abstract_extractor.py -v  # Run specific test
-uv run pytest --cov=src --cov-report=html         # Generate coverage report
+uv run pytest tests/test_extractor_contract.py -v # Run contract tests (most important)
+uv run pytest tests/config_extractors/ -v         # Run config extractor tests
+uv run pytest tests/red_phase/ -v                 # Run RED phase tests (should fail initially)
+uv run pytest tests/green_phase/ -v               # Run GREEN phase tests (should pass)
+uv run pytest tests/test_coverage.py -v           # Run coverage calculation tests
+uv run pytest --cov=src --cov-report=html         # Generate HTML coverage report
+uv run pytest -k "config" -v                      # Run tests matching pattern
+uv run pytest --lf                                # Run only failed tests from last run
 
 # Manual formatting
 black src/ tests/ --line-length 100               # Format code
@@ -135,6 +141,13 @@ The framework implements a plugin-based architecture for extensibility:
 - Weighted scoring across DAYLIGHT dimensions
 - Pass/fail threshold: 85% default
 
+**ConfigurationExtractor** (`src/ddd/config_extractors/__init__.py`)
+- NEW: Multi-language configuration discovery system
+- Extracts environment variables, config files, and constants
+- Security-aware: Automatically flags sensitive data
+- Supports Python, JavaScript, YAML, JSON, TOML, .env files
+- Pattern-based extraction with language-specific rules
+
 **DimensionSpec & DAYLIGHTSpec** (`src/ddd/specs/__init__.py`)
 - Define documentation requirements for 8 DAYLIGHT dimensions:
   - Dependencies, Automation, Yearbook, Lifecycle, Integration, Governance, Health, Testing
@@ -148,10 +161,24 @@ The framework implements a plugin-based architecture for extensibility:
 
 ### Key Design Patterns
 
-1. **Plugin Architecture**: Extractors are designed to be pluggable - add new language support by creating new extractor classes
-2. **Specification Pattern**: DimensionSpec defines what "complete" looks like for each documentation dimension
-3. **Coverage Calculation**: Three-tiered coverage measurement mimics code coverage tools
-4. **CLI Integration**: Rich terminal output using Click framework with color coding and tables
+1. **Plugin Architecture**: All extractors inherit from base classes
+   - `InfrastructureExtractor` for tool-specific extraction (Ansible, Terraform)
+   - `ConfigurationExtractor` for configuration discovery
+   - New extractors: inherit base, implement `extract()` method
+
+2. **Test-Driven Development Structure**:
+   ```
+   tests/
+   ├── red_phase/     # Tests that define requirements (fail first)
+   ├── green_phase/   # Tests that verify implementation 
+   └── refactor_phase/  # Tests for optimization
+   ```
+   Always write RED phase tests before implementing features
+
+3. **Coverage Calculation Flow**:
+   - Extract documentation → Apply DAYLIGHT specs → Calculate 3-tier coverage
+   - Each dimension weighted differently (Governance: 1.3, Yearbook: 0.8)
+   - Overall threshold: 85% for passing
 
 ## Technical Constraints
 
@@ -204,136 +231,33 @@ python -c "import sys; print(sys.path)"
 
 ## Current Implementation Status
 
-### MVP: Ansible-Focused Implementation
+### Completed Extractors
+- **AnsibleModuleExtractor**: AWS IAM permissions from boto3 calls
+- **ConfigurationExtractor**: Multi-language config discovery 
+- **GenericPythonExtractor**: Python filesystem/network operations
+- **AdvancedAnsibleExtractor**: AST-based deep extraction
 
-**Why Ansible?**
-- Represents real enterprise maintenance challenges
-- Rich ecosystem with official documentation for comparison
-- Complex permission and state management requirements
-- Demonstrates value to operations teams immediately
+### Test Coverage Status
+- 208 total tests across all modules
+- 95% test coverage on core modules
+- Contract tests: 27/28 passing (96.4%)
 
-**Implementation Progress**:
-- ✅ **Abstract Base Layer** (`InfrastructureExtractor`)
-  - Universal maintenance concepts (permissions, errors, state)
-  - Template method pattern for consistent extraction
-  - 100% test coverage with TDD approach
-  
-- ✅ **Ansible Extractor** (`AnsibleModuleExtractor`)
-  - AWS IAM permission extraction from boto3 calls
-  - DOCUMENTATION/EXAMPLES/RETURN block parsing
-  - Maintenance scenario generation
-  - 93% test coverage (26/28 tests passing)
 
-- ⏳ **In Progress**:
-  - Sphinx documentation generator
-  - Comparison tool with docs.ansible.com
-  - Demo script for leadership presentation
 
-### Abstraction Layers
 
-```
-┌─────────────────────────────────────┐
-│     CLI Interface (Click-based)     │
-├─────────────────────────────────────┤
-│    Coverage Calculator & Specs      │
-│  (DAYLIGHT dimensions, thresholds)  │
-├─────────────────────────────────────┤
-│    Abstract Extractor Layer         │
-│  (InfrastructureExtractor base)     │
-├─────────────────────────────────────┤
-│    Tool-Specific Extractors         │
-│ (Ansible, Terraform, K8s - future)  │
-└─────────────────────────────────────┘
-```
 
-This architecture ensures:
-- **Extensibility**: Add new tools without changing core logic
-- **Consistency**: All tools follow same extraction patterns
-- **Maintainability**: Clear separation of concerns
 
-## Documentation & Communication Guidelines
-
-### When Discussing DDD (DO's and DON'Ts)
-
-**DO Say (Factual Claims We Can Prove):**
-- "DDD automatically extracts AWS IAM permissions from Ansible code" ✅
-- "We achieved 85% coverage on our test baseline" ✅
-- "Extraction takes less than 5 seconds for typical modules" ✅
-- "93% of our tests are passing" ✅
-- "The framework uses TDD principles applied to documentation" ✅
-- "We can measure documentation coverage like code coverage" ✅
-
-**DON'T Say (Unverified Claims):**
-- ❌ Specific dollar savings without actual data
-- ❌ Percentage improvements without measured baselines
-- ❌ Industry statistics without credible sources
-- ❌ Time savings without actual measurements
-- ❌ ROI projections without pilot program data
-- ❌ Comparisons to other tools without benchmarks
-
-### Documentation Principles
-
-1. **Be Factual**: Every claim must be demonstrable with working code
-2. **Show, Don't Tell**: Use actual command output and real examples
-3. **Acknowledge Limitations**: Be honest about what doesn't work yet
-4. **Measure First**: Don't claim improvements without baselines
-5. **Let Pilots Prove Value**: Use pilot programs to generate real metrics
-
-## The Big Picture: Why This Matters
-
-### The Maintenance Crisis
-Every day, operations teams inherit code they didn't write. When production fails at 2AM, they need:
-- What permissions does this need? (AWS IAM, Kubernetes RBAC, etc.)
-- What can go wrong? (Common errors and recovery procedures)
-- How do I know if it's working? (State management, idempotency)
-- What does this depend on? (External services, configurations)
-
-**Current Reality**: Dig through code, guess at requirements, learn through failure
-**DDD Vision**: Generated runbooks with everything needed for maintenance
-
-### How DDD Changes the Game
-
-```
-Traditional Approach:
-Code → Deploy → Hope docs exist → Scramble during incidents
-
-DDD Approach:
-Code → Extract Documentation → Measure Coverage → Generate Runbooks → Confident Operations
-```
-
-### The Ansible MVP Proves the Concept
-
-We're starting with Ansible because it represents real enterprise challenges:
-1. **Complex Permissions**: AWS IAM policies extracted from boto3 calls
-2. **Error Patterns**: Common failures with specific recovery steps  
-3. **State Management**: Idempotency, check mode, change tracking
-4. **Dependencies**: Python packages, Ansible modules, AWS services
-
-**Success Metric**: 85% maintenance scenario coverage (not code coverage!)
-
-### Future Expansion
-
-The abstraction layer is designed for growth:
-- **Terraform**: Provider permissions, state files, plan/apply workflows
-- **Kubernetes**: RBAC, resource limits, health checks, rollback procedures
-- **Shell Scripts**: Unix permissions, error codes, dependency checks
-- **Docker**: Port mappings, volume mounts, health checks, resource limits
-
-Each tool adds its specific extractors while reusing the core framework.
 
 ## Key Implementation Details
 
-When modifying extractors:
-- File operations should use `pathlib.Path` objects
-- Include error handling for malformed configuration files
-- Return consistent Dict structure with dimension data
+**When creating new extractors:**
+- Inherit from `InfrastructureExtractor` or `ConfigurationExtractor`
+- Implement `extract()` method returning Dict with DAYLIGHT dimensions
+- Write RED phase tests first in `tests/red_phase/`
+- Use `pathlib.Path` for file operations
 
-When working with coverage calculations:
-- Weights are configurable per dimension in DAYLIGHTSpec
-- Overall coverage uses weighted average across dimensions
-- Missing elements tracked for actionable recommendations
-
-CLI command structure:
-- Commands defined in `src/cli.py` using Click decorators
-- Rich console for formatted output (tables, panels, colors)
-- Exit code 1 on coverage failure for CI/CD integration
+**Critical patterns to follow:**
+- Configuration extraction uses regex patterns in `ENV_PATTERNS` dict
+- Sensitive data detection checks against `SENSITIVE_PATTERNS` list
+- Coverage calculation follows 3-tier model (element/completeness/usefulness)
+- All extractors must pass contract tests in `test_extractor_contract.py`
